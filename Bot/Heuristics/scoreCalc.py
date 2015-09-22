@@ -12,7 +12,7 @@ def scoreCalc(field, player):
             if val in [0,3]:
                 scoreArray[index] = 0
                 if perfectClear == 0:
-                    continue
+                    break
     score = 0
     if perfectClear != 0:
         for s in scoreArray:
