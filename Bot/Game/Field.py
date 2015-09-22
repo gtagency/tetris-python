@@ -5,7 +5,11 @@ class Field:
         self.width = 10
         self.height = 20
         self.field = [[0]*self.width]*self.height
-
+#0 empty
+#1 shape - current piece?
+#2 block - normal blocks
+#3 solid - blocks that cannot be removed
+#4 proj - projected current block?
     def size(self):
         return self.width, self.height
 
