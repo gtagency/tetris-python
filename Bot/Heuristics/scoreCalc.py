@@ -19,7 +19,7 @@ def scoreCalc(field, player):
             if s == 1:
                 score += 1
         score = _lineVals[score]
-    else:
+    else: 
         score = 24
     score += player.combo
     return score
