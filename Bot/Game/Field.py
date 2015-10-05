@@ -58,11 +58,26 @@ class Field:
             return field
         else:
             return None
+    
+    def getChildren(self, piece):
+        """Given a 5x5 piece matrix, return all possible goal states.
 
+        A goal state is any position in which the piece is on top of another."""
+    
+        piecevalid = lambda piece, pos: all(0<=coords[0]+pos[0]<self.width and 0<=coords[1]+pos[1]<self.height for coords in (rotation for rotation in piece._rotations))
+        
+        offset = piece.length - 1
 
-    piecevalid = lambda piece, pos: all(0<=coords[0]+pos[0]<self.width and 0<=coords[1]+pos[1]<self.height for coords in (rotation for rotation in piece._rotations))
+        children = []
 
+        for i in reversed(range(- offset, self.height + offset)):
+            for j in range(- offset, self.width + offset):
+                pos = (i, j)
+                if self.isValidPosition(pos):
+                    children.append(pos)
 
+        return children
+    
     def getAllChildren(self, piece):
         findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[p,q] == 0)]
 
