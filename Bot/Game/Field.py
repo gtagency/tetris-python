@@ -59,7 +59,11 @@ class Field:
         else:
             return None
 
-    def getChildren(self, piece):
+
+    piecevalid = lambda piece, pos: all(0<=coords[0]+pos[0]<self.width and 0<=coords[1]+pos[1]<self.height for coords in (rotation for rotation in piece._rotations))
+
+
+    def getAllChildren(self, piece):
         findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[p,q] == 0)]
 
         def findPieces(loc):
@@ -72,12 +76,10 @@ class Field:
                 tetromino.union({(x,y,z,w) for w in findSpaces(z)})
             return {set(x) for x in tetromino}
 
-
         children = set()
         for (x,y), value in np.ndenumerate(self.field):
             if value == 0 and (y == 0 or self.field[x,y-1] != 0):
                 children.union(findPieces((x,y)))
-        paths = {}
 
 
         # compose = lambda x,f: {(x,y) for (x,y) in (x,f(x))} no, I want {(x,y) for y in f(x)}
