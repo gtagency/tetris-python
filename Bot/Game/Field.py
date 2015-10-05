@@ -58,14 +58,17 @@ class Field:
             return field
         else:
             return None
-    
+
+    def isPieceValid(self, piece, position):
+        piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height for coords in (rotation for rotation in piece._rotations))
+        return piecevalid(piece, position)
+
     def getChildren(self, piece):
         """Given a 5x5 piece matrix, return all possible goal states.
 
         A goal state is any position in which the piece is on top of another."""
     
-        piecevalid = lambda piece, pos: all(0<=coords[0]+pos[0]<self.width and 0<=coords[1]+pos[1]<self.height for coords in (rotation for rotation in piece._rotations))
-        
+
         offset = piece.length - 1
 
         children = []
@@ -73,8 +76,8 @@ class Field:
         for i in reversed(range(- offset, self.height + offset)):
             for j in range(- offset, self.width + offset):
                 pos = (i, j)
-                if self.isValidPosition(pos):
-                    children.append(pos)
+                if self.isPieceValid(piece,pos):
+                    children.append(piece)
 
         return children
     
