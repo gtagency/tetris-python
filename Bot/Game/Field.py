@@ -59,10 +59,10 @@ class Field:
         else:
             return None
 
-    def isDropPositionValid(self, piece, position ):
-        piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height and self.field((coords[0]+position[0], coords[1]+position[1])) == 0 for coords in (rotation for rotation in piece._rotations))
-        droppositionvalid = lambda piece, position: any( coords[1]+position[1]>self.height or self.field((coords[0]+position[0], coords[1]+position[1]+1)) != 0 for coords in (rotation for rotation in piece._rotations))
-        return piecevalid(piece, position) && droppositionvalid(piece, position)
+    def isDropPositionValid(self, rotation, position ):
+        piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height and self.field((coords[0]+position[0], coords[1]+position[1])) == 0 for coords in rotation)
+        droppositionvalid = lambda piece, position: any( coords[1]+position[1]>self.height or self.field((coords[0]+position[0], coords[1]+position[1]+1)) != 0 for coords in rotation)
+        return piecevalid(rotation, position) and droppositionvalid(rotation, position)
 
     def getChildren(self, piece):
         """Given a 5x5 piece matrix, return all possible goal states.
@@ -79,7 +79,7 @@ class Field:
                 pos = (i, j)
                 for rotation in piece:
                     if self.isDropPositionValid(rotation, pos):
-                        children.append(rotation)
+                        children.append((rotation, pos))
 
         return children
     
