@@ -59,9 +59,10 @@ class Field:
         else:
             return None
 
-    def isPieceValid(self, piece, position):
-        piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height for coords in (rotation for rotation in piece._rotations))
-        return piecevalid(piece, position)
+    def isDropPositionValid(self, piece, position ):
+        piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height and self.field((coords[0]+position[0], coords[1]+position[1])) == 0 for coords in (rotation for rotation in piece._rotations))
+        droppositionvalid = lambda piece, position: any( coords[1]+position[1]>self.height or self.field((coords[0]+position[0], coords[1]+position[1]+1)) != 0 for coords in (rotation for rotation in piece._rotations))
+        return piecevalid(piece, position) && droppositionvalid(piece, position)
 
     def getChildren(self, piece):
         """Given a 5x5 piece matrix, return all possible goal states.
@@ -76,12 +77,13 @@ class Field:
         for i in reversed(range(- offset, self.height + offset)):
             for j in range(- offset, self.width + offset):
                 pos = (i, j)
-                if self.isPieceValid(piece,pos):
-                    children.append(piece)
+                for rotation in piece:
+                    if self.isDropPositionValid(rotation, pos):
+                        children.append(rotation)
 
         return children
     
-    def getAllChildren(self, piece):
+    def getAllChildren(self):
         findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[p,q] == 0)]
 
         def findPieces(loc):
