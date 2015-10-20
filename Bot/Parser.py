@@ -18,7 +18,7 @@ class Parser:
         if values[0] == 'player_names':
             self._playerNames = values[1].split(',')
 
-        elif values[0] == 'your_bot':
+        elif values[0] == 'mlg-bot':
             self._game.me.name = values[1]
             self._playerNames.remove(values[1])
             self._game.enemy.name = self._playerNames[0]

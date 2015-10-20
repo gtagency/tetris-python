@@ -1,8 +1,8 @@
-from Bot.Strategies.RandomStrategy import RandomStrategy
+from Bot.Strategies.AnacondaPlan import AnacondaPlan
 
 def create(strategyType, game):
     switcher = {
-        "random": RandomStrategy(game)
+        "anaconda": AnacondaPlan(game)
     }
 
     strategy = switcher.get(strategyType.lower())
