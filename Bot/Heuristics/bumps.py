@@ -2,7 +2,7 @@ def bumps(field):
     heightSum = 0
     for i = 0 to field.shape[1]:
         height = 0
-        for j = 0to field.shape[0]:
+        for j = 0 to field.shape[0]:
             if field[j][i] != 0:
                 height = i
         heightSum += height
