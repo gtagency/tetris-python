@@ -3,9 +3,9 @@ import numpy as np
 differences from the mean height"""
 def bumps(field):
     heightSum = 0
-    for i = 0 to field.shape[1]:
+    for i = 0 to field.shape[1] - 1:
         height = 0
-        for j = 0 to field.shape[0]:
+        for j = 0 to field.shape[0] - 1:
             if field[j][i] != 0:
                 height = i
         heightSum += height
@@ -13,8 +13,8 @@ def bumps(field):
     return variation
     
     deviationSum = 0
-    for i = 0 to field.shape[1]:
-        for j = 0 to field.shape[0] i:
+    for i = 0 to field.shape[1] - 1:
+        for j = 0 to field.shape[0] - 1:
             if field[j][i] != 0:
                 height = i
         heightDifference = heightAverage - height
