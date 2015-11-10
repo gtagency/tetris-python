@@ -1,3 +1,6 @@
+import numpy as np
+"""Given a field array, return the average deviation of height
+differences from the mean height"""
 def bumps(field):
     heightSum = 0
     for i = 0 to field.shape[1]:
