@@ -68,7 +68,7 @@ class Field:
         """Given a 5x5 piece matrix, return all possible goal states.
 
         A goal state is any position in which the piece is on top of another."""
-    
+
 
         offset = piece.length - 1
 
@@ -82,7 +82,7 @@ class Field:
                         children.append((rotation, pos))
 
         return children
-    
+
     def getAllChildren(self):
         findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[p,q] == 0)]
 
@@ -101,10 +101,4 @@ class Field:
             if value == 0 and (y == 0 or self.field[x,y-1] != 0):
                 children.union(findPieces((x,y)))
 
-
-        # compose = lambda x,f: {(x,y) for (x,y) in (x,f(x))} no, I want {(x,y) for y in f(x)}
-        # composeElementWise = lambda x,f: frozenset.union(*{compose(x,f) for x in x})
-        # findPieces = lambda x: (x,findSpaces(x))
-        # composeSelf = lambda f, n: lambda x: x if n == 0 else composeSelf(f, n-1)(f(x))
-
-
+        return children
