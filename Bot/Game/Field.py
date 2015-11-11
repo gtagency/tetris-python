@@ -81,6 +81,12 @@ class Field:
                     if self.isDropPositionValid(rotation, pos):
                         children.append((rotation, pos))
 
+        childrenFields = []
+        for rotation, pos in children:
+            childField = Field()
+            childField.field = self.field.fitPiece(pos)
+            chidlrenFields.append(childField)
+
         return children
 
     def getAllChildren(self):
@@ -100,5 +106,15 @@ class Field:
         for (x,y), value in np.ndenumerate(self.field):
             if value == 0 and (y == 0 or self.field[x,y-1] != 0):
                 children.union(findPieces((x,y)))
+
+        # Children is a bunch of sets, each of those with four coordinates that
+        # need to be set to 1. And everything needs to be wrapped in a Field.
+        childrenFields = []
+        for child in children:
+            childField = Field()
+            childField.field = self.field
+            for x, y in child:
+                childField.field[y][x] = 1
+            childrenFields.append(childField)
 
         return children
