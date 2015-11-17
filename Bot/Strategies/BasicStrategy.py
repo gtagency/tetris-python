@@ -14,6 +14,12 @@ def height_heuristic(new_field):
             if any(row):
                 return new_field.height - i
 
+def dfs(node, depth):
+    currentDepth = depth
+    for child in node.getAllChildren():
+        if not child in node.children && currentDepth > 0:
+            node.children.append(child)
+            dfs(child, currentDepth--)
 
 class BasicStrategy(AbstractStrategy):
     def __init__(self, game):
@@ -46,7 +52,11 @@ class MonteCarloStrategy(AbstractStrategy):
         root = Node(currentState)
 
         # DO THIS PLS
-
+        stateChildren = root.state.getChildren(game.piece)
+        for i in xrange(len(stateChildren)):
+            child = Node(stateChildren[i], root)
+            dfs(child, 3)
+            root.children.append(child)
         return root
 
     def choose(self):
