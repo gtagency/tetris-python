@@ -17,7 +17,7 @@ def height_heuristic(new_field):
 def dfs(node, depth):
     currentDepth = depth
     for child in node.getAllChildren():
-        if not child in node.children && currentDepth > 0:
+        if not child in node.children and currentDepth > 0:
             node.children.append(child)
             dfs(child, currentDepth--)
 
@@ -48,11 +48,10 @@ class MonteCarloStrategy(AbstractStrategy):
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
 
     def generateMCTree(self):
-        currentState = game.player.field
+        currentState = self._game.player.field
         root = Node(currentState)
 
-        # DO THIS PLS
-        stateChildren = root.state.getChildren(game.piece)
+        stateChildren = root.state.getChildren(self._game.piece)
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
             dfs(child, 3)
