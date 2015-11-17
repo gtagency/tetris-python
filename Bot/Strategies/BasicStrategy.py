@@ -49,14 +49,47 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return root
 
+    def pickBestChild(self, nodeList):
+        pass
+
+    def evaluate(self, root):
+        pass
+
+    def searchMCBranch(self, root):
+        root.visits += 1
+
+        if not root.children:
+            utility = self.evaluate(root)
+            if utility > 0.5:
+                root.reward += 1
+            return utility
+
+        child = self.pickBestChild(root.children)
+
+        utility = self.searchMCBranch(child)
+        if utility > 0.5:
+            root.reward += 1
+
+    def searchMCTree(self, tree):
+        for i in range(500):
+            self.searchMCBranch(tree)
+
+        return self.pickBestChild(tree.children)
+
     def choose(self):
         # Generate Monte Carlo Tree.
         tree = self.generateMCTree()
 
+        # Pick a goal.
+        goal = self.searchMCTree(tree)
+
+        # Find actions to goal.
+        # TODO
+
         # Fallback to random strategy.
-        ind = [randint(0, 4) for _ in range(1, 10)]
-        moves = map(lambda x: self._actions[x], ind)
-        moves.append('drop')
+        # ind = [randint(0, 4) for _ in range(1, 10)]
+        # moves = map(lambda x: self._actions[x], ind)
+        # moves.append('drop')
 
         return moves
 
