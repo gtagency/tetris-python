@@ -1,6 +1,8 @@
 from random import randint
-
+from Heuristics.levelHeight import levelHeight
+from Heuristics.scoreCalc import scoreCalc
 from AbstractStrategy import AbstractStrategy
+from math import log
 
 def score_heuristic(new_field):
     for row in new_field.field:
@@ -58,11 +60,19 @@ class MonteCarloStrategy(AbstractStrategy):
             root.children.append(child)
         return root
 
-    def pickBestChild(self, nodeList):
-        pass
+    def pickBestChild(self, root):
+        C = 2**(1/2)
+        currentVisits = root.visits
+        # exploration / exploitation
+        score = lambda x: ((float(x.reward) / x.visits) + C * (2 * log(float(x.visits) / currentVisits))**(1/2))
+        childList = root.children
+        best = max([(score(child), child) for child in childList])
 
     def evaluate(self, root):
-        pass
+        weights = [1, 1]
+        field = root.state.field
+        score = weights[0] * scoreCalc(field) + weights[1] * levelHeight(field)
+        return float(score) / sum(weights)
 
     def searchMCBranch(self, root):
         root.visits += 1
@@ -73,7 +83,7 @@ class MonteCarloStrategy(AbstractStrategy):
                 root.reward += 1
             return utility
 
-        child = self.pickBestChild(root.children)
+        child = self.pickBestChild(root)
 
         utility = self.searchMCBranch(child)
         if utility > 0.5:
@@ -83,7 +93,7 @@ class MonteCarloStrategy(AbstractStrategy):
         for i in range(500):
             self.searchMCBranch(tree)
 
-        return self.pickBestChild(tree.children)
+        return self.pickBestChild(tree)
 
     def choose(self):
         # Generate Monte Carlo Tree.

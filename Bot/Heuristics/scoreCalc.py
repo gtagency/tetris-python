@@ -1,7 +1,7 @@
 
 
 #TODO: need to account for t-spin points
-def scoreCalc(field, player):
+def scoreCalc(field, player={'combo': 0}):
     _lineVals = {1:1, 2:3, 3:6, 4:12}
     scoreArray = [1]*field.height
     perfectClear = 1
@@ -19,7 +19,7 @@ def scoreCalc(field, player):
             if s == 1:
                 score += 1
         score = _lineVals[score]
-    else: 
+    else:
         score = 24
     score += player.combo
     return score
