@@ -129,12 +129,11 @@ class MonteCarloStrategy(AbstractStrategy):
         return actions
 
     def reverseDFS(self, goal, piecePos, piece):
-        # this recurses - so I guess it's a reverse recurse DFS :D
-        #currentState is a Game obj, goal is a field
+
         closed = set()
         currentField = self._game.me.field
-        openList = [((piecePos[1],piecePos[0]), piece, [])]
-
+        openList = [(piecePos, piece, [])]
+        print piecePos
 
         while len(openList) != 0:
             piecePos, piece, intstructions = openList.pop()
@@ -162,11 +161,11 @@ class MonteCarloStrategy(AbstractStrategy):
 
 
             #normal moves
-            for move in [[0,1],[0,-1],[1,0]]:
+            for move in [[1,0],[-1,0],[0,1]]:
                 offset = currentField._offsetPiece(piece.positions(), map(add, piecePos, move))
                 if currentField._checkIfPieceFits(offset):
                     newState = (map(add, piecePos, move), copy.deepcopy(piece), copy.deepcopy(intstructions))
-                    newState[2].append("left" if move == [0,-1] else ("right" if move == [0,1] else "down"))
+                    newState[2].append("left" if move == [-1,0] else ("right" if move == [1,0] else "down"))
                     if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
                         openList.append(newState)
                         closed.add((tuple(newState[0]), newState[1]._rotateIndex))
