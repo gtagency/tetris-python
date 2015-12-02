@@ -1,6 +1,8 @@
 from random import randint
 from AbstractStrategy import AbstractStrategy
 from math import log
+from operator import add
+import copy
 
 def score_heuristic(new_field):
     score = 0
@@ -48,7 +50,7 @@ class MonteCarloStrategy(AbstractStrategy):
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
 
     def generateMCTree(self):
-        currentState = self._game.player.field
+        currentState = self._game.me.field
         root = Node(currentState)
 
         stateChildren = root.state.getChildren(self._game.piece)
@@ -103,7 +105,8 @@ class MonteCarloStrategy(AbstractStrategy):
 
         # Find actions to goal.
         # TODO
-
+        actions = reverseDFS(goal, self._game.piecePosition, self._game.piece);
+        print actions
         # let's just output the goal we want:
         print goal
 
@@ -114,3 +117,42 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return moves
 
+    def reverseDFS(self, goal, piecePos, piece, closed=[]):
+        # this recurses - so I guess it's a reverse recurse DFS :D
+        #currentState is a Game obj, goal is a field
+        currentField = self._game.me.field
+        piecePos = currentState.piecePosition #tuple
+        piece = currentState.piece
+        children = []
+        #normal moves
+        for move in [[1,0],[0,1],[0,-1]]:
+            offset = currentField.__offsetPiece(piece.positions(), map(add, piecePos, move))
+            if currentField.__checkIfPieceFits(offset):
+                newState = (map(add, piecePos, move), copy.deeepcopy(piece), "left" if move == [0,-1] else ("right" if move == [0,1] else "down"))
+                if newState not in closed:
+                    children.append(newState)
+                    closed.append(newState)
+        #rotations
+        copyPiece = copy.deeepcopy(piece)
+        if copyPiece.turnLeft() and currentField.__checkIfPieceFits(currentField.__offsetPiece(copyPiece.positions(), piecePos)):
+            newState = (copy.deeepcopy(piecePos), copy.deeepcopy(copyPiece), "turnLeft")
+            if newState not in closed:
+                children.append(newState)
+                closed.append(newState)
+        copyPiece = copy.deeepcopy(piece)
+        if copyPiece.turnRight() and currentField.__checkIfPieceFits(currentField.__offsetPiece(copyPiece.positions(), piecePos)):
+            newState = (copy.deeepcopy(piecePos), copy.deeepcopy(copyPiece), "turnRight")
+            if newState not in closed:
+                children.append(newState)
+                closed.append(newState)
+
+        #recursion time!
+        for child in children:
+            if goal.field == currentField.fitPiece(child[1].positions(), child[0]):
+                return [child[2]]
+            else:
+                rec = reverseDFS(goal, child[0], child[1], closed)
+                if rec != None:
+                    return rec.append(child[2])
+
+        return None
