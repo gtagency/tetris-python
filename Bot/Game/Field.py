@@ -85,15 +85,11 @@ class Field:
         for rotation, pos in children:
             childField = Field()
             piecePositions = []
-            for tempY, row in enumerate(rotation):
-                for tempX, val in enumerate(row):
-                    if val != 0:
-                        piecePositions.append((tempX + pos[0], tempY + pos[1]))
-            childField.field = self.fitPiece(piecePositions)
+            childField.field = self.fitPiece(piecePositions, pos)
             if childField.field != None:
+                print childField.field
                 childrenFields.append(childField)
 
-        print childrenFields
         return childrenFields
 
     def getAllChildren(self):

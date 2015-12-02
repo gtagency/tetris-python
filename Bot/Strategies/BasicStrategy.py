@@ -55,7 +55,6 @@ class MonteCarloStrategy(AbstractStrategy):
         root = Node(currentState, None)
 
         stateChildren = root.state.getChildren(self._game.piece)
-        print len(stateChildren)
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
             dfs(child, 3)
@@ -66,8 +65,6 @@ class MonteCarloStrategy(AbstractStrategy):
         C = 2**(1/2)
         currentVisits = root.visits
         childList = root.children
-        if len(childList) == 0:
-            print 'whyyyyy'
 
         if currentVisits == 0:
             return choice(childList)
@@ -108,14 +105,21 @@ class MonteCarloStrategy(AbstractStrategy):
         # Generate Monte Carlo Tree.
         tree = self.generateMCTree()
 
+        # print 'here is trees field'
+        # print tree.state.field
+        # print 'and the children'
+        # for child in tree.children:
+            # print ''
+            # print child.state.field
+
         # Pick a goal.
         goal = self.searchMCTree(tree).state
         print goal.field
 
         # Find actions to goal.
         # TODO
-        actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece);
-        print actions
+        # actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece);
+        # print actions
         # let's just output the goal we want:
 
         # Fallback to random strategy.
@@ -156,8 +160,7 @@ class MonteCarloStrategy(AbstractStrategy):
 
         #recursion time!
         for child in children:
-            if (goal.field == currentField.fitPiece(child[1].positions(), child[0])).all()
-            :
+            if (goal.field == currentField.fitPiece(child[1].positions(), child[0])).all():
                 return [child[2]]
             else:
                 rec = self.reverseDFS(goal, child[0], child[1], closed)
