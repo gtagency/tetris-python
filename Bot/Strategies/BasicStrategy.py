@@ -114,12 +114,11 @@ class MonteCarloStrategy(AbstractStrategy):
 
         # Pick a goal.
         goal = self.searchMCTree(tree).state
-        print goal.field
-
+        #print goal.field
         # Find actions to goal.
         # TODO
         actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece);
-        print actions
+        #print actions
         # let's just output the goal we want:
 
         # Fallback to random strategy.
@@ -129,14 +128,13 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return actions
 
-    def reverseDFS(self, goal, piecePos, piece, closed=set()):
+    def reverseDFS(self, goal, piecePos, piece):
         # this recurses - so I guess it's a reverse recurse DFS :D
         #currentState is a Game obj, goal is a field
-
+        closed = set()
         currentField = self._game.me.field
         openList = [((piecePos[1],piecePos[0]), piece, [])]
-        # print piecePos
-        # print piece.positions()
+
 
         while len(openList) != 0:
             piecePos, piece, intstructions = openList.pop()
