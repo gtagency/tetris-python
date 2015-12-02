@@ -46,16 +46,20 @@ class MonteCarloStrategy(AbstractStrategy):
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
 
     def dfs(self, node, depth):
+        # print 'depth', depth
         if depth == 0:
             # Return this utility
+            # print 'util is', self.evaluate(node)
             return [self.evaluate(node)]
 
         childUtilities = []
         for childField in node.state.getAllChildren():
+            # print 'hey'
             child = Node(childField, node)
             if not child in node.children and depth  > 0:
                 node.children.append(child)
                 childUtilities.extend(self.dfs(child, depth - 1))
+        # print 'childUtils', childUtilities
         return childUtilities
 
     def generateMCTree(self):
@@ -70,10 +74,10 @@ class MonteCarloStrategy(AbstractStrategy):
             leafUtilities.extend(self.dfs(child, 1))
             root.children.append(child)
 
-        # print leafUtilities
+        print leafUtilities
         # generate average utility of leaf nodes
         avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities)
-        # print avgLeafUtil
+        print avgLeafUtil
 
         return root, avgLeafUtil
 
@@ -153,7 +157,7 @@ class MonteCarloStrategy(AbstractStrategy):
         closed = set()
         currentField = self._game.me.field
         openList = [(piecePos, piece, [])]
-        print piecePos
+        # print piecePos
 
         while len(openList) != 0:
             piecePos, piece, intstructions = openList.pop()
