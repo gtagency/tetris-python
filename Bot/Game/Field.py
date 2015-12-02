@@ -105,7 +105,7 @@ class Field:
             childField.field = self.fitPiece(piecePositions)
             childrenFields.append(childField)
 
-        return children
+        return childrenFields
 
     def getAllChildren(self):
         findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[p,q] == 0)]
@@ -121,7 +121,8 @@ class Field:
             return {set(x) for x in tetromino}
 
         children = set()
-        for (x,y), value in np.ndenumerate(self.field):
+        for index, value in np.ndenumerate(self.field):
+            x, y = index
             if value == 0 and (y == 0 or self.field[x,y-1] != 0):
                 children.union(findPieces((x,y)))
 
