@@ -125,37 +125,38 @@ class MonteCarloStrategy(AbstractStrategy):
         # this recurses - so I guess it's a reverse recurse DFS :D
         #currentState is a Game obj, goal is a field
         currentField = self._game.me.field
-        piecePos = currentState.piecePosition #tuple
-        piece = currentState.piece
+        piecePos = self._game.piecePosition #tuple
+        piece = self._game.piece
         children = []
         #normal moves
         for move in [[1,0],[0,1],[0,-1]]:
-            offset = currentField.__offsetPiece(piece.positions(), map(add, piecePos, move))
-            if currentField.__checkIfPieceFits(offset):
-                newState = (map(add, piecePos, move), copy.deeepcopy(piece), "left" if move == [0,-1] else ("right" if move == [0,1] else "down"))
+            offset = currentField._offsetPiece(piece.positions(), map(add, piecePos, move))
+            if currentField._checkIfPieceFits(offset):
+                newState = (map(add, piecePos, move), copy.deepcopy(piece), "left" if move == [0,-1] else ("right" if move == [0,1] else "down"))
                 if newState not in closed:
                     children.append(newState)
                     closed.append(newState)
         #rotations
-        copyPiece = copy.deeepcopy(piece)
-        if copyPiece.turnLeft() and currentField.__checkIfPieceFits(currentField.__offsetPiece(copyPiece.positions(), piecePos)):
-            newState = (copy.deeepcopy(piecePos), copy.deeepcopy(copyPiece), "turnLeft")
+        copyPiece = copy.deepcopy(piece)
+        if copyPiece.turnLeft() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
+            newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), "turnLeft")
             if newState not in closed:
                 children.append(newState)
                 closed.append(newState)
-        copyPiece = copy.deeepcopy(piece)
-        if copyPiece.turnRight() and currentField.__checkIfPieceFits(currentField.__offsetPiece(copyPiece.positions(), piecePos)):
-            newState = (copy.deeepcopy(piecePos), copy.deeepcopy(copyPiece), "turnRight")
+        copyPiece = copy.deepcopy(piece)
+        if copyPiece.turnRight() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
+            newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), "turnRight")
             if newState not in closed:
                 children.append(newState)
                 closed.append(newState)
 
         #recursion time!
         for child in children:
-            if goal.field == currentField.fitPiece(child[1].positions(), child[0]):
+            if (goal.field == currentField.fitPiece(child[1].positions(), child[0])).all()
+            :
                 return [child[2]]
             else:
-                rec = reverseDFS(goal, child[0], child[1], closed)
+                rec = self.reverseDFS(goal, child[0], child[1], closed)
                 if rec != None:
                     return rec.append(child[2])
 

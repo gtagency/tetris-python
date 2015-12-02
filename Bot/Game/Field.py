@@ -14,7 +14,7 @@ class Field:
         self.field = np.array(field)
 
     def projectPieceDown(self, piece, offset):
-        piecePositions = self.__offsetPiece(piece.positions(), offset)
+        piecePositions = self._offsetPiece(piece.positions(), offset)
 
         field_s = None
         for height in range(0, self.height-1):
@@ -27,7 +27,7 @@ class Field:
         return field_s
 
     @staticmethod
-    def __offsetPiece(piecePositions, offset):
+    def _offsetPiece(piecePositions, offset):
         piece = copy.deepcopy(piecePositions)
         for pos in piece:
             pos[0] += offset[0]
@@ -35,7 +35,7 @@ class Field:
 
         return piece
 
-    def __checkIfPieceFits(self, piecePositions):
+    def _checkIfPieceFits(self, piecePositions):
         for x,y in piecePositions:
             if 0 <= x < self.width and 0 <= y < self.height:
                 if self.field[y][x] > 1:
@@ -46,12 +46,12 @@ class Field:
 
     def fitPiece(self, piecePositions, offset=None):
         if offset:
-            piece = self.__offsetPiece(piecePositions, offset)
+            piece = self._offsetPiece(piecePositions, offset)
         else:
             piece = piecePositions
 
         field = copy.deepcopy(self.field)
-        if self.__checkIfPieceFits(piece):
+        if self._checkIfPieceFits(piece):
             for x,y in piece:
                 field[y][x] = 4
 
