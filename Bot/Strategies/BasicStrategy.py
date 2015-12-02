@@ -46,20 +46,16 @@ class MonteCarloStrategy(AbstractStrategy):
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
 
     def dfs(self, node, depth):
-        # print 'depth', depth
         if depth == 0:
             # Return this utility
-            # print 'util is', self.evaluate(node)
             return [self.evaluate(node)]
 
         childUtilities = []
         for childField in node.state.getAllChildren():
-            # print 'hey'
             child = Node(childField, node)
             if not child in node.children and depth  > 0:
                 node.children.append(child)
                 childUtilities.extend(self.dfs(child, depth - 1))
-        # print 'childUtils', childUtilities
         return childUtilities
 
     def generateMCTree(self):
@@ -69,15 +65,12 @@ class MonteCarloStrategy(AbstractStrategy):
         stateChildren = root.state.getChildren(self._game.piece)
         leafUtilities = []
         for i in xrange(len(stateChildren)):
-            # print 'hang tight'
             child = Node(stateChildren[i], root)
             leafUtilities.extend(self.dfs(child, 1))
             root.children.append(child)
 
-        #print leafUtilities
         # generate average utility of leaf nodes
-        avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities)
-        # print avgLeafUtil
+        avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities) + 0.04
 
         return root, avgLeafUtil
 
@@ -95,13 +88,12 @@ class MonteCarloStrategy(AbstractStrategy):
             return best
 
     def evaluate(self, root, debug=False):
-        weights = [1, 3]
+        weights = [0, 1]
         field = root.state.field
         if debug:
             print 'scoreH:', score_heuristic(field)
             print 'heightH:', height_heuristic(field)
         score = weights[0] * score_heuristic(field) + weights[1] * height_heuristic(field)
-        # print field
         return float(score) / sum(weights)
 
     def searchMCBranch(self, root, avgUtil=0.5):
@@ -132,6 +124,17 @@ class MonteCarloStrategy(AbstractStrategy):
         # Pick a goal.
         goal = self.searchMCTree(tree, avgUtil).state
 
+        # print 'current'
+        # print tree.state.field
+        # print 'child'
+        # print tree.children[5].state.field
+        # print 'grandchild'
+        # print tree.children[5].children[6].state.field
+        # print 'score', self.evaluate(tree.children[5].children[6])
+        # print tree.children[5].children[16].state.field
+        # print 'score', self.evaluate(tree.children[5].children[16])
+        # print 'avg', avgUtil
+
         # C = 2**(1/2)
         # currentVisits = tree.visits
         # print 'here is trees (', currentVisits, 'visits) field'
@@ -149,7 +152,8 @@ class MonteCarloStrategy(AbstractStrategy):
         # print goal.field
 
         # Find actions to goal.
-        actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece);
+        actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece)
+        actions.append('drop')
 
         return actions
 
@@ -177,14 +181,14 @@ class MonteCarloStrategy(AbstractStrategy):
             copyPiece = copy.deepcopy(piece)
             if copyPiece.turnLeft() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
                 newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
-                newState[2].append("turnLeft")
+                newState[2].append("turnleft")
                 if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
                     openList.append(newState)
                     closed.add((tuple(newState[0]), newState[1]._rotateIndex))
             copyPiece = copy.deepcopy(piece)
             if copyPiece.turnRight() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
                 newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
-                newState[2].append("turnRight")
+                newState[2].append("turnright")
                 if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
                     openList.append(newState)
                     closed.add((tuple(newState[0]), newState[1]._rotateIndex))
