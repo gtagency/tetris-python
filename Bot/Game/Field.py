@@ -5,13 +5,13 @@ class Field:
     def __init__(self):
         self.width = 10
         self.height = 20
-        self.field = np.array([[0]*self.width, [0]*self.height], np.int32) #[[0]*self.width]*self.height
+        self.field = np.array([[0]*self.width]*self.height) #np.array([[0]*self.width, [0]*self.height], np.int32)
 
     def size(self):
         return self.width, self.height
 
     def updateField(self, field):
-        self.field = field
+        self.field = np.array(field)
 
     def projectPieceDown(self, piece, offset):
         piecePositions = self.__offsetPiece(piece.positions(), offset)
@@ -60,9 +60,22 @@ class Field:
             return None
 
     def isDropPositionValid(self, rotation, position ):
-        piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height and self.field((coords[0]+position[0], coords[1]+position[1])) == 0 for coords in rotation)
-        droppositionvalid = lambda piece, position: any( coords[1]+position[1]>self.height or self.field((coords[0]+position[0], coords[1]+position[1]+1)) != 0 for coords in rotation)
-        return piecevalid(rotation, position) and droppositionvalid(rotation, position)
+        def pieceValid(piece, position):
+            for rowIdx, row in enumerate(rotation):
+                for colIdx, val in enumerate(row):
+                    if val != 0:
+                        yIdx = rowIdx + position[0]
+                        xIdx = colIdx + position[1]
+                        if not 0 <= yIdx < self.height or not 0 <= xIdx < self.width:
+                            return False
+                        if self.field[yIdx, xIdx] != 0:
+                            return False
+            return True
+
+        # piecevalid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and 0<=coords[1]+position[1]<self.height and self.field[(coords[0]+position[0], coords[1]+position[1])] == 0 for coords in rotation)
+        # droppositionvalid = lambda piece, position: any( coords[1]+position[1]>self.height or self.field((coords[0]+position[0], coords[1]+position[1]+1)) != 0 for coords in rotation)
+
+        return pieceValid(rotation, position) #and dropPosValid(rotation, position)
 
     def getChildren(self, piece):
         """Given a 5x5 piece matrix, return all possible goal states.
@@ -70,22 +83,27 @@ class Field:
         A goal state is any position in which the piece is on top of another."""
 
 
-        offset = piece.length - 1
+        offset = len(piece.positions())- 1
 
         children = []
 
         for i in reversed(range(- offset, self.height + offset)):
             for j in range(- offset, self.width + offset):
                 pos = (i, j)
-                for rotation in piece:
+                for rotation in piece._rotations:
                     if self.isDropPositionValid(rotation, pos):
                         children.append((rotation, pos))
 
         childrenFields = []
         for rotation, pos in children:
             childField = Field()
-            childField.field = self.field.fitPiece(pos)
-            chidlrenFields.append(childField)
+            piecePositions = []
+            for tempY, row in enumerate(rotation):
+                for tempX, val in enumerate(row):
+                    if val != 0:
+                        piecePositions.append((tempX + pos[0], tempY + pos[1]))
+            childField.field = self.fitPiece(piecePositions)
+            childrenFields.append(childField)
 
         return children
 
