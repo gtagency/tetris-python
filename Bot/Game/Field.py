@@ -85,7 +85,7 @@ class Field:
         for rotation, pos in children:
             childField = Field()
             childField.field = self.fitPiece(rotation, pos)
-            if childField.field != None:
+            if childField.field is not None:
                 # print childField.field
                 childrenFields.append(childField)
 

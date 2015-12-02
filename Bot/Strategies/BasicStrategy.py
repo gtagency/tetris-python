@@ -11,10 +11,15 @@ def score_heuristic(new_field):
             score += 1
     return float(score) / len(new_field)
 
-def height_heuristic(new_field):
+def height_heuristic(new_field, debug=False):
     for i, row in enumerate(new_field):
-        if any(row):
-            return 1 -float(len(new_field) - i) / len(new_field)
+        if any([x > 1 for x in row]):
+            if debug:
+                print row
+                print 'height', len(new_field)
+                print 'i', i
+                print float(len(new_field) - i)
+            return 1 - (float(len(new_field) - i) / len(new_field))
 
 def dfs(node, depth):
     currentDepth = depth
@@ -57,7 +62,7 @@ class MonteCarloStrategy(AbstractStrategy):
         stateChildren = root.state.getChildren(self._game.piece)
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
-            dfs(child, 3)
+            dfs(child, 6)
             root.children.append(child)
         return root
 
@@ -74,9 +79,12 @@ class MonteCarloStrategy(AbstractStrategy):
             _, best = max([(score(child), child) for child in childList])
             return best
 
-    def evaluate(self, root):
-        weights = [1, 1]
+    def evaluate(self, root, debug=False):
+        weights = [1, 3]
         field = root.state.field
+        if debug:
+            print 'scoreH:', score_heuristic(field)
+            print 'heightH:', height_heuristic(field, True)
         score = weights[0] * score_heuristic(field) + weights[1] * height_heuristic(field)
         return float(score) / sum(weights)
 
@@ -105,26 +113,27 @@ class MonteCarloStrategy(AbstractStrategy):
         # Generate Monte Carlo Tree.
         tree = self.generateMCTree()
 
-        # print 'here is trees field'
+        # Pick a goal.
+        goal = self.pickBestChild(tree).state
+
+        # C = 2**(1/2)
+        # currentVisits = tree.visits
+        # print 'here is trees (', currentVisits, 'visits) field'
         # print tree.state.field
         # print 'and the children'
-        # for child in tree.children:
+        # for i in range(7):
+            # child = choice(tree.children)
+            # score = lambda x: ((float(x.reward) / x.visits) + C * (2 * log(float(x.visits) / currentVisits))**(1/2))
             # print ''
             # print child.state.field
+            # evalu = self.evaluate(child)
+            # print 'score:', evalu
+            # print 'prob:', score(child)
 
-        # Pick a goal.
-        goal = self.searchMCTree(tree).state
-        #print goal.field
+        # print goal.field
+
         # Find actions to goal.
-        # TODO
         actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece);
-        #print actions
-        # let's just output the goal we want:
-
-        # Fallback to random strategy.
-        # ind = [randint(0, 4) for _ in range(1, 10)]
-        # moves = map(lambda x: self._actions[x], ind)
-        # moves.append('drop')
 
         return actions
 
