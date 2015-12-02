@@ -1,4 +1,4 @@
-from random import randint
+from random import randint, choice
 from AbstractStrategy import AbstractStrategy
 from math import log
 from operator import add
@@ -6,13 +6,13 @@ import copy
 
 def score_heuristic(new_field):
     score = 0
-    for row in field:
+    for row in new_field:
         if all(row):
             score += 1
-    return float(score) / len(new_field.field)
+    return float(score) / len(new_field)
 
 def height_heuristic(new_field):
-    for row in new_field:
+    for i, row in enumerate(new_field):
         if any(row):
             return float(len(new_field) - i) / len(new_field)
 
@@ -41,13 +41,14 @@ class Node(object):
         self.state = state
         self.children = []
         self.parent = parent
-        self.visits = 0
+        self.visits = 1
         self.reward = 0
 
 class MonteCarloStrategy(AbstractStrategy):
     def __init__(self, game):
         AbstractStrategy.__init__(self, game)
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
+        # self.isFirstPiece = True
 
     def generateMCTree(self):
         currentState = self._game.me.field
@@ -63,11 +64,14 @@ class MonteCarloStrategy(AbstractStrategy):
     def pickBestChild(self, root):
         C = 2**(1/2)
         currentVisits = root.visits
-        # exploration / exploitation
-        score = lambda x: ((float(x.reward) / x.visits) + C * (2 * log(float(x.visits) / currentVisits))**(1/2))
         childList = root.children
-        _, best = max([(score(child), child) for child in childList])
-        return best
+        if currentVisits == 0:
+            return choice(childList)
+        else:
+            # exploration / exploitation
+            score = lambda x: ((float(x.reward) / x.visits) + C * (2 * log(float(x.visits) / currentVisits))**(1/2))
+            _, best = max([(score(child), child) for child in childList])
+            return best
 
     def evaluate(self, root):
         weights = [1, 1]
@@ -102,13 +106,13 @@ class MonteCarloStrategy(AbstractStrategy):
 
         # Pick a goal.
         goal = self.searchMCTree(tree).state
+        print goal.field
 
         # Find actions to goal.
         # TODO
-        actions = reverseDFS(goal, self._game.piecePosition, self._game.piece);
+        actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece);
         print actions
         # let's just output the goal we want:
-        print goal
 
         # Fallback to random strategy.
         ind = [randint(0, 4) for _ in range(1, 10)]

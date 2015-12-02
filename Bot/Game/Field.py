@@ -16,15 +16,15 @@ class Field:
     def projectPieceDown(self, piece, offset):
         piecePositions = self.__offsetPiece(piece.positions(), offset)
 
-        field = None
+        field_s = None
         for height in range(0, self.height-1):
             tmp = self.fitPiece(piecePositions, [0, height])
 
             if not tmp:
                 break
-            field = tmp
+            field_s = tmp
 
-        return field
+        return field_s
 
     @staticmethod
     def __offsetPiece(piecePositions, offset):
@@ -82,7 +82,6 @@ class Field:
 
         A goal state is any position in which the piece is on top of another."""
 
-
         offset = len(piece.positions())- 1
 
         children = []
@@ -103,12 +102,13 @@ class Field:
                     if val != 0:
                         piecePositions.append((tempX + pos[0], tempY + pos[1]))
             childField.field = self.fitPiece(piecePositions)
-            childrenFields.append(childField)
+            if childField.field != None:
+                childrenFields.append(childField)
 
         return childrenFields
 
     def getAllChildren(self):
-        findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[p,q] == 0)]
+        findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[q][p] == 0)]
 
         def findPieces(loc):
             domino = {(loc,y) for y in findSpaces(loc)}
