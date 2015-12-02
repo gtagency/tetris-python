@@ -36,7 +36,7 @@ class Field:
         return piece
 
     def _checkIfPieceFits(self, piecePositions):
-        for y,x in piecePositions:
+        for x,y in piecePositions:
             if 0 <= x < self.width and 0 <= y < self.height:
                 if self.field[y][x] > 1:
                     return False
