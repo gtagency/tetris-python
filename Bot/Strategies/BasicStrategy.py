@@ -74,7 +74,7 @@ class MonteCarloStrategy(AbstractStrategy):
             leafUtilities.extend(self.dfs(child, 1))
             root.children.append(child)
 
-        # print leafUtilities
+        #print leafUtilities
         # generate average utility of leaf nodes
         avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities)
         # print avgLeafUtil
@@ -157,7 +157,7 @@ class MonteCarloStrategy(AbstractStrategy):
         closed = set()
         currentField = self._game.me.field
         openList = [(piecePos, piece, [])]
-        # print piecePos
+
 
         while len(openList) != 0:
             piecePos, piece, intstructions = openList.pop()
@@ -165,6 +165,10 @@ class MonteCarloStrategy(AbstractStrategy):
             test = goal.field == currentField.fitPiece(piece.positions(), piecePos)
             if type(test) is not bool and test.all():
                 #(type(test) is bool and test == True) or
+                # print currentField.fitPiece(piece.positions(), piecePos)
+                # print piecePos
+                # print piece.positions()
+                # print piece._rotateIndex
                 return intstructions
 
             #rotations

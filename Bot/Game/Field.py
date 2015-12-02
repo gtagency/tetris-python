@@ -36,7 +36,7 @@ class Field:
         return piece
 
     def _checkIfPieceFits(self, piecePositions):
-        for y, x in piecePositions:
+        for x, y in piecePositions:
             if 0 <= x < self.width and 0 <= y < self.height:
                 if self.field[y][x] > 1:
                     return False
@@ -52,7 +52,7 @@ class Field:
         # print 'p', piece
         field = copy.deepcopy(self.field)
         if self._checkIfPieceFits(piece):
-            for y,x in piece:
+            for x,y in piece:
                 field[y][x] = 4
 
             return field
@@ -60,8 +60,8 @@ class Field:
             return None
 
     def isDropPositionValid(self, rotation, position):
-        pieceValid = lambda piece, position: all(0<=coords[0]+position[0]<self.height and 0<=coords[1]+position[1]<self.width and self.field[coords[0]+position[0]][coords[1]+position[1]] == 0 for coords in rotation)
-        dropPosValid = lambda piece, position: any( coords[0]+position[0] + 1>=self.height or self.field[coords[0]+position[0]+1][coords[1]+position[1]] != 0 for coords in rotation)
+        pieceValid = lambda piece, position: all(0<=coords[1]+position[1]<self.height and 0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] == 0 for coords in rotation)
+        dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] != 0 for coords in rotation)
 
         return pieceValid(rotation, position) and dropPosValid(rotation, position)
 
@@ -76,7 +76,7 @@ class Field:
 
         for i in reversed(range(- offset, self.height + offset)):
             for j in range(- offset, self.width + offset):
-                pos = (i, j)
+                pos = (j, i)
                 for rotation in piece._rotations:
                     if self.isDropPositionValid(rotation, pos):
                         children.append((rotation, pos))
@@ -112,9 +112,10 @@ class Field:
 
         # Children is a bunch of sets, each of those with four coordinates that
         # need to be set to 1. And everything needs to be wrapped in a Field.
+
         childrenFields = []
         for rotation in children:
-            flippedRot = ((y, x) for (x, y) in rotation)
+            flippedRot = rotation #((y, x) for (x, y) in rotation)
             # print 'flippedRot', flippedRot
             # print 'newfield'
             # print self.fitPiece(flippedRot)
