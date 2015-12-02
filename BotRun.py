@@ -40,4 +40,4 @@ class Bot:
 
 
 if __name__ == '__main__':
-    Bot("basic").run()
+    Bot("montecarlo").run()
