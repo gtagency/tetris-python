@@ -101,6 +101,7 @@ class MonteCarloStrategy(AbstractStrategy):
             print 'scoreH:', score_heuristic(field)
             print 'heightH:', height_heuristic(field)
         score = weights[0] * score_heuristic(field) + weights[1] * height_heuristic(field)
+        # print field
         return float(score) / sum(weights)
 
     def searchMCBranch(self, root, avgUtil=0.5):
@@ -157,6 +158,7 @@ class MonteCarloStrategy(AbstractStrategy):
         closed = set()
         currentField = self._game.me.field
         openList = [(piecePos, piece, [])]
+        print goal.field
 
 
         while len(openList) != 0:

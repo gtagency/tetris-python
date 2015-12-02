@@ -60,8 +60,8 @@ class Field:
             return None
 
     def isDropPositionValid(self, rotation, position):
-        pieceValid = lambda piece, position: all(0<=coords[1]+position[1]<self.height and 0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] == 0 for coords in rotation)
-        dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] != 0 for coords in rotation)
+        pieceValid = lambda piece, position: all(coords[1]+position[1]<self.height and 0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] <= 1 for coords in rotation)
+        dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] > 1 for coords in rotation)
 
         return pieceValid(rotation, position) and dropPosValid(rotation, position)
 
@@ -70,17 +70,18 @@ class Field:
 
         A goal state is any position in which the piece is on top of another."""
 
-        offset = len(piece.positions())- 1
+        offset = 3 # len(piece.positions())- 1
 
         children = []
 
-        for i in reversed(range(- offset, self.height + offset)):
-            for j in range(- offset, self.width + offset):
+        for i in reversed(range(- offset, self.height -1)):
+            for j in range(- offset, self.width -1):
                 pos = (j, i)
                 for rotation in piece._rotations:
                     if self.isDropPositionValid(rotation, pos):
                         children.append((rotation, pos))
 
+        # print children
         childrenFields = []
         for rotation, pos in children:
             childField = Field()
@@ -88,6 +89,8 @@ class Field:
             if childField.field is not None:
                 childrenFields.append(childField)
 
+        # for x in childrenFields:
+        #     print x.field
         return childrenFields
 
     def getAllChildren(self):
