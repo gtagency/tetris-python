@@ -158,7 +158,7 @@ class MonteCarloStrategy(AbstractStrategy):
         closed = set()
         currentField = self._game.me.field
         openList = [(piecePos, piece, [])]
-        print goal.field
+        # print goal.field
 
 
         while len(openList) != 0:
