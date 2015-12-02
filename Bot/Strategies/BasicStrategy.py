@@ -11,22 +11,11 @@ def score_heuristic(new_field):
             score += 1
     return float(score) / len(new_field)
 
-def height_heuristic(new_field, debug=False):
+def height_heuristic(new_field):
     for i, row in enumerate(new_field):
         if any([x > 1 for x in row]):
-            if debug:
-                print row
-                print 'height', len(new_field)
-                print 'i', i
-                print float(len(new_field) - i)
             return 1 - (float(len(new_field) - i) / len(new_field))
 
-def dfs(node, depth):
-    currentDepth = depth
-    for child in node.state.getAllChildren():
-        if not child in node.children and currentDepth > 0:
-            node.children.append(child)
-            dfs(child, currentDepth-1)
 
 class BasicStrategy(AbstractStrategy):
     def __init__(self, game):
@@ -40,6 +29,7 @@ class BasicStrategy(AbstractStrategy):
 
         return moves
 
+
 class Node(object):
 
     def __init__(self, state, parent):
@@ -49,22 +39,46 @@ class Node(object):
         self.visits = 1
         self.reward = 0
 
+
 class MonteCarloStrategy(AbstractStrategy):
     def __init__(self, game):
         AbstractStrategy.__init__(self, game)
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
-        # self.isFirstPiece = True
+
+    def dfs(self, node, depth):
+        if depth == 0:
+            # Return this utility
+            print 'reached depth 0'
+            print self.evaluate(node)
+            return [self.evaluate(node)]
+
+        childUtilities = []
+        for child in node.state.getAllChildren():
+            print 'hey child', child
+            if not child in node.children and depth  > 0:
+                node.children.append(child)
+                childUtilities.extend(self.dfs(child, depth - 1))
+        print 'at depth', depth
+        print 'child utils'
+        print childUtilities
+        return childUtilities
 
     def generateMCTree(self):
         currentState = self._game.me.field
         root = Node(currentState, None)
 
         stateChildren = root.state.getChildren(self._game.piece)
+        leafUtilities = []
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
-            dfs(child, 6)
+            leafUtilities.extend(self.dfs(child, 6))
             root.children.append(child)
-        return root
+
+        print leafUtilities
+        # generate average utility of leaf nodes
+        avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities)
+
+        return root, avgLeafUtil
 
     def pickBestChild(self, root):
         C = 2**(1/2)
@@ -84,37 +98,37 @@ class MonteCarloStrategy(AbstractStrategy):
         field = root.state.field
         if debug:
             print 'scoreH:', score_heuristic(field)
-            print 'heightH:', height_heuristic(field, True)
+            print 'heightH:', height_heuristic(field)
         score = weights[0] * score_heuristic(field) + weights[1] * height_heuristic(field)
         return float(score) / sum(weights)
 
-    def searchMCBranch(self, root):
+    def searchMCBranch(self, root, avgUtil=0.5):
         root.visits += 1
 
         if not root.children:
             utility = self.evaluate(root)
-            if utility > 0.5:
+            if utility > avgUtil:
                 root.reward += 1
             return utility
 
         child = self.pickBestChild(root)
 
         utility = self.searchMCBranch(child)
-        if utility > 0.5:
+        if utility > avgUtil:
             root.reward += 1
 
-    def searchMCTree(self, tree):
+    def searchMCTree(self, tree, avgUtil):
         for i in range(500):
-            self.searchMCBranch(tree)
+            self.searchMCBranch(tree, avgUtil)
 
         return self.pickBestChild(tree)
 
     def choose(self):
         # Generate Monte Carlo Tree.
-        tree = self.generateMCTree()
+        tree, avgUtil = self.generateMCTree()
 
         # Pick a goal.
-        goal = self.pickBestChild(tree).state
+        goal = self.searchMCTree(tree, avgUtil).state
 
         # C = 2**(1/2)
         # currentVisits = tree.visits
