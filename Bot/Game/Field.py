@@ -36,7 +36,7 @@ class Field:
         return piece
 
     def _checkIfPieceFits(self, piecePositions):
-        for x,y in piecePositions:
+        for y,x in piecePositions:
             if 0 <= x < self.width and 0 <= y < self.height:
                 if self.field[y][x] > 1:
                     return False
@@ -52,7 +52,7 @@ class Field:
 
         field = copy.deepcopy(self.field)
         if self._checkIfPieceFits(piece):
-            for x,y in piece:
+            for y,x in piece:
                 field[y][x] = 4
 
             return field
@@ -84,10 +84,9 @@ class Field:
         childrenFields = []
         for rotation, pos in children:
             childField = Field()
-            piecePositions = []
-            childField.field = self.fitPiece(piecePositions, pos)
+            childField.field = self.fitPiece(rotation, pos)
             if childField.field != None:
-                print childField.field
+                # print childField.field
                 childrenFields.append(childField)
 
         return childrenFields

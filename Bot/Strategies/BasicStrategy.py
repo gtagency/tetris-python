@@ -14,7 +14,7 @@ def score_heuristic(new_field):
 def height_heuristic(new_field):
     for i, row in enumerate(new_field):
         if any(row):
-            return float(len(new_field) - i) / len(new_field)
+            return 1 -float(len(new_field) - i) / len(new_field)
 
 def dfs(node, depth):
     currentDepth = depth
