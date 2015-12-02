@@ -135,18 +135,14 @@ class MonteCarloStrategy(AbstractStrategy):
 
         currentField = self._game.me.field
         openList = [((piecePos[1],piecePos[0]), piece, [])]
-        print piecePos
-        print piece.positions()
+        # print piecePos
+        # print piece.positions()
 
         while len(openList) != 0:
             piecePos, piece, intstructions = openList.pop()
 
             test = goal.field == currentField.fitPiece(piece.positions(), piecePos)
             if type(test) is not bool and test.all():
-                print currentField.field
-                print currentField.fitPiece(piece.positions(), piecePos)
-                print piecePos
-                print piece.positions()
                 #(type(test) is bool and test == True) or
                 return intstructions
 
@@ -177,14 +173,5 @@ class MonteCarloStrategy(AbstractStrategy):
                         openList.append(newState)
                         closed.add((tuple(newState[0]), newState[1]._rotateIndex))
 
-
-            #recursion time!
-            # for child in openList:
-            #     if goal.field == currentField.fitPiece(child[1].positions(), child[0]):#).all():
-            #         return [child[2]]
-            #     else:
-            #         rec = self.reverseDFS(goal, child[0], child[1], closed)
-            #         if rec != None:
-            #             return rec.append(child[2])
 
         return None
