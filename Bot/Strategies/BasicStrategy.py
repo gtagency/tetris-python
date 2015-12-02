@@ -74,10 +74,10 @@ class MonteCarloStrategy(AbstractStrategy):
             leafUtilities.extend(self.dfs(child, 1))
             root.children.append(child)
 
-        print leafUtilities
+        # print leafUtilities
         # generate average utility of leaf nodes
         avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities)
-        print avgLeafUtil
+        # print avgLeafUtil
 
         return root, avgLeafUtil
 
