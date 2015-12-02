@@ -48,19 +48,14 @@ class MonteCarloStrategy(AbstractStrategy):
     def dfs(self, node, depth):
         if depth == 0:
             # Return this utility
-            print 'reached depth 0'
-            print self.evaluate(node)
             return [self.evaluate(node)]
 
         childUtilities = []
-        for child in node.state.getAllChildren():
-            print 'hey child', child
+        for childField in node.state.getAllChildren():
+            child = Node(childField, node)
             if not child in node.children and depth  > 0:
                 node.children.append(child)
                 childUtilities.extend(self.dfs(child, depth - 1))
-        print 'at depth', depth
-        print 'child utils'
-        print childUtilities
         return childUtilities
 
     def generateMCTree(self):
@@ -70,13 +65,15 @@ class MonteCarloStrategy(AbstractStrategy):
         stateChildren = root.state.getChildren(self._game.piece)
         leafUtilities = []
         for i in xrange(len(stateChildren)):
+            # print 'hang tight'
             child = Node(stateChildren[i], root)
-            leafUtilities.extend(self.dfs(child, 6))
+            leafUtilities.extend(self.dfs(child, 1))
             root.children.append(child)
 
-        print leafUtilities
+        # print leafUtilities
         # generate average utility of leaf nodes
         avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities)
+        # print avgLeafUtil
 
         return root, avgLeafUtil
 
