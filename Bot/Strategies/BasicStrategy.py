@@ -55,6 +55,7 @@ class MonteCarloStrategy(AbstractStrategy):
         root = Node(currentState, None)
 
         stateChildren = root.state.getChildren(self._game.piece)
+        print len(stateChildren)
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
             dfs(child, 3)
@@ -65,6 +66,9 @@ class MonteCarloStrategy(AbstractStrategy):
         C = 2**(1/2)
         currentVisits = root.visits
         childList = root.children
+        if len(childList) == 0:
+            print 'whyyyyy'
+
         if currentVisits == 0:
             return choice(childList)
         else:
