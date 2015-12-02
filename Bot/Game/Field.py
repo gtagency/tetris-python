@@ -85,39 +85,39 @@ class Field:
         for rotation, pos in children:
             childField = Field()
             childField.field = self.fitPiece(rotation, pos)
-            if childField.field != None:
-                # print childField.field
+            if childField.field is not None:
                 childrenFields.append(childField)
 
         return childrenFields
 
     def getAllChildren(self):
-        findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[q][p] == 0)]
+        findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[q][p] <= 1)]
 
         def findPieces(loc):
             domino = {(loc,y) for y in findSpaces(loc)}
             tromino = set()
             for x,y in domino:
-                tromino.union({(x,y,z) for z in findSpaces(y)})
+                tromino = tromino.union({(x,y,z) for z in findSpaces(y)})
             tetromino = set()
             for x,y,z in tromino:
-                tetromino.union({(x,y,z,w) for w in findSpaces(z)})
-            return {set(x) for x in tetromino}
+                tetromino = tetromino.union({(x,y,z,w) for w in findSpaces(z)})
+            return {tuple(set(x)) for x in tetromino}
 
         children = set()
+        maxY = len(self.field) - 1
         for index, value in np.ndenumerate(self.field):
-            x, y = index
-            if value == 0 and (y == 0 or self.field[x,y-1] != 0):
-                children.union(findPieces((x,y)))
+            y, x = index
+            if value <= 1 and (y == maxY or self.field[y+1][x] > 1):
+                children = children.union(findPieces((x,y)))
 
         # Children is a bunch of sets, each of those with four coordinates that
         # need to be set to 1. And everything needs to be wrapped in a Field.
         childrenFields = []
-        for child in children:
+        for rotation in children:
+            flippedRot = ((y, x) for (x, y) in rotation)
             childField = Field()
-            childField.field = self.field
-            for x, y in child:
-                childField.field[y][x] = 1
-            childrenFields.append(childField)
+            childField.field = self.fitPiece(flippedRot)
+            if childField.field is not None:
+                childrenFields.append(childField)
 
-        return children
+        return childrenFields
