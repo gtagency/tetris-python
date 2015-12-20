@@ -3,6 +3,7 @@ from AbstractStrategy import AbstractStrategy
 from math import log
 from operator import add
 import copy
+import sys
 
 def score_heuristic(new_field):
     score = 0
@@ -66,16 +67,22 @@ class MonteCarloStrategy(AbstractStrategy):
         leafUtilities = []
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
-            leafUtilities.extend(self.dfs(child, 1))
+            childStateChildren = child.state.getChildren(self._game.nextPiece)
+            for j in xrange(len(childStateChildren)):
+                childsChild = Node(childStateChildren[j], child)
+                leafUtilities.extend(self.dfs(childsChild, 1))
+                child.children.append(childsChild)
             root.children.append(child)
 
         # generate average utility of leaf nodes
         avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities) + 0.04
 
+        # sys.stderr.write('avgLeafUtil' + str(avgLeafUtil) + '\n')
+
         return root, avgLeafUtil
 
-    def pickBestChild(self, root):
-        C = 2**(1/2)
+    def pickBestChild(self, root, final=False, isTreeRoot=False):
+        C = 2**(0.5)
         currentVisits = root.visits
         childList = root.children
 
@@ -83,8 +90,14 @@ class MonteCarloStrategy(AbstractStrategy):
             return choice(childList)
         else:
             # exploration / exploitation
-            score = lambda x: ((float(x.reward) / x.visits) + C * (2 * log(float(x.visits) / currentVisits))**(1/2))
-            _, best = max([(score(child), child) for child in childList])
+            score = lambda x: ((float(x.reward) / x.visits) + C * (log(float(currentVisits)) / float(x.visits))**(0.5))
+            if isTreeRoot and False:
+                sys.stderr.write(str([(score(child), child.visits) for child in childList]) + '\n')
+            sc, best = max([(score(child), child) for child in childList])
+            if final and False:
+                sys.stderr.write(str(best.state.field) + '\n')
+                sys.stderr.write(str(sc) + '\n')
+                sys.stderr.write(str(self.evaluate(best)) + '\n')
             return best
 
     def evaluate(self, root, debug=False):
@@ -96,16 +109,16 @@ class MonteCarloStrategy(AbstractStrategy):
         score = weights[0] * score_heuristic(field) + weights[1] * height_heuristic(field)
         return float(score) / sum(weights)
 
-    def searchMCBranch(self, root, avgUtil=0.5):
+    def searchMCBranch(self, root, avgUtil=0.5, isTreeRoot=False):
         root.visits += 1
 
-        if not root.children:
+        if len(root.children) == 0:
             utility = self.evaluate(root)
             if utility > avgUtil:
                 root.reward += 1
             return utility
 
-        child = self.pickBestChild(root)
+        child = self.pickBestChild(root, isTreeRoot=isTreeRoot)
 
         utility = self.searchMCBranch(child)
         if utility > avgUtil:
@@ -113,43 +126,32 @@ class MonteCarloStrategy(AbstractStrategy):
 
     def searchMCTree(self, tree, avgUtil):
         for i in range(500):
-            self.searchMCBranch(tree, avgUtil)
+            self.searchMCBranch(tree, avgUtil, isTreeRoot=True)
 
-        return self.pickBestChild(tree)
+        return self.pickBestChild(tree, final=True)
 
     def choose(self):
+        sys.stderr.write('making a decision')
         # Generate Monte Carlo Tree.
         tree, avgUtil = self.generateMCTree()
 
         # Pick a goal.
         goal = self.searchMCTree(tree, avgUtil).state
 
-        # print 'current'
-        # print tree.state.field
-        # print 'child'
-        # print tree.children[5].state.field
-        # print 'grandchild'
-        # print tree.children[5].children[6].state.field
-        # print 'score', self.evaluate(tree.children[5].children[6])
-        # print tree.children[5].children[16].state.field
-        # print 'score', self.evaluate(tree.children[5].children[16])
-        # print 'avg', avgUtil
+        # sys.stderr.write('root visits: ' + str(tree.visits) + '\n')
+        # sys.stderr.write('root reward: ' + str(tree.reward) + '\n')
+        # childVisits = [(child.visits, child.reward) for child in tree.children]
+        # sys.stderr.write('childVisitsAndRewards: \n' + str(childVisits) + '\n')
 
-        # C = 2**(1/2)
-        # currentVisits = tree.visits
-        # print 'here is trees (', currentVisits, 'visits) field'
-        # print tree.state.field
-        # print 'and the children'
-        # for i in range(7):
-            # child = choice(tree.children)
-            # score = lambda x: ((float(x.reward) / x.visits) + C * (2 * log(float(x.visits) / currentVisits))**(1/2))
-            # print ''
-            # print child.state.field
-            # evalu = self.evaluate(child)
-            # print 'score:', evalu
-            # print 'prob:', score(child)
-
-        # print goal.field
+        # i = 0
+        # for child in tree.children[0].children[0].children:
+            # if i > 15:
+                # break
+            # sys.stderr.write(str(child.state.field) + '\n')
+            # sys.stderr.write(str(self.evaluate(child)) + '\n')
+            # sys.stderr.write('visits: ' + str(child.visits) + '\n')
+            # sys.stderr.write('reward: ' + str(child.reward) + '\n')
+            # i += 1
 
         # Find actions to goal.
         actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece)
