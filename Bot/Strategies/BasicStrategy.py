@@ -54,7 +54,7 @@ class MonteCarloStrategy(AbstractStrategy):
         childUtilities = []
         for childField in node.state.getAllChildren():
             child = Node(childField, node)
-            if not child in node.children and depth  > 0:
+            if not child in node.children and depth > 0:
                 node.children.append(child)
                 childUtilities.extend(self.dfs(child, depth - 1))
         return childUtilities
@@ -90,7 +90,7 @@ class MonteCarloStrategy(AbstractStrategy):
             return choice(childList)
         else:
             # exploration / exploitation
-            score = lambda x: ((float(x.reward) / x.visits) + C * (log(float(currentVisits)) / float(x.visits))**(0.5))
+            score = lambda x: ((float(x.reward) / x.visits) + C * (log(currentVisits) / float(x.visits))**(0.5))
             if isTreeRoot and False:
                 sys.stderr.write(str([(score(child), child.visits) for child in childList]) + '\n')
             sc, best = max([(score(child), child) for child in childList])
@@ -120,38 +120,60 @@ class MonteCarloStrategy(AbstractStrategy):
 
         child = self.pickBestChild(root, isTreeRoot=isTreeRoot)
 
-        utility = self.searchMCBranch(child)
+        utility = self.searchMCBranch(child, avgUtil)
         if utility > avgUtil:
             root.reward += 1
+        return utility
 
     def searchMCTree(self, tree, avgUtil):
-        for i in range(500):
+        for i in range(2000):
             self.searchMCBranch(tree, avgUtil, isTreeRoot=True)
 
         return self.pickBestChild(tree, final=True)
 
     def choose(self):
-        sys.stderr.write('making a decision')
         # Generate Monte Carlo Tree.
         tree, avgUtil = self.generateMCTree()
 
         # Pick a goal.
-        goal = self.searchMCTree(tree, avgUtil).state
+        # goal = self.searchMCTree(tree, avgUtil).state
+        goal = self.searchMCTree(tree, avgUtil)
+        # TODO: this avgutil is not working because it is setting the AVERAGE case to be desirable.
+        # this means that MC will explore every branch uniformly because the average case is spread uniformly throughout the tree.
+        # This might be fixed if we add new heuristics like holes are bad, lines are good, etc.
 
-        # sys.stderr.write('root visits: ' + str(tree.visits) + '\n')
-        # sys.stderr.write('root reward: ' + str(tree.reward) + '\n')
-        # childVisits = [(child.visits, child.reward) for child in tree.children]
-        # sys.stderr.write('childVisitsAndRewards: \n' + str(childVisits) + '\n')
+        ### --- ###
+        # currentVisits = tree.visits
+        # C = 2 ** (0.5)
+        # score = lambda x: ((float(x.reward) / x.visits) + C * (log(float(currentVisits)) / float(x.visits))**(0.5))
 
         # i = 0
         # for child in tree.children[0].children[0].children:
+        # for child in tree.children:
             # if i > 15:
                 # break
             # sys.stderr.write(str(child.state.field) + '\n')
             # sys.stderr.write(str(self.evaluate(child)) + '\n')
             # sys.stderr.write('visits: ' + str(child.visits) + '\n')
             # sys.stderr.write('reward: ' + str(child.reward) + '\n')
+            # sys.stderr.write('chance:' + str(score(child)) + '\n')
             # i += 1
+
+        sys.stderr.write('avgUtil: ' + str(avgUtil) + '\n')
+        sys.stderr.write('root visits: ' + str(tree.visits) + '\n')
+        sys.stderr.write('root reward: ' + str(tree.reward) + '\n')
+
+        childVisits = [(child.visits, child.reward) for child in tree.children]
+        sys.stderr.write('childVisitsAndRewards: \n' + str(childVisits) + '\n')
+
+        childVisits = [(child.visits, child.reward) for child in tree.children[0].children]
+        sys.stderr.write('childVisitsAndRewards2: \n' + str(childVisits) + '\n')
+
+        sys.stderr.write('goal: \n' + str(goal.state.field))
+        sys.stderr.write('goal util: ' + str(self.evaluate(goal)))
+        ### --- ###
+
+        goal = goal.state
 
         # Find actions to goal.
         actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece)
