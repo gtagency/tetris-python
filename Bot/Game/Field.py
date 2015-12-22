@@ -26,6 +26,17 @@ class Field:
 
         return field_s
 
+    def projectRotationDown(self, piecePositions, offset):
+        field_s = None
+        for height in range(0, self.height-1):
+            tmp = self.fitPiece(piecePositions, [0, height])
+
+            if not tmp:
+                break
+            field_s = tmp
+
+        return field_s
+
     @staticmethod
     def _offsetPiece(piecePositions, offset):
         piece = copy.deepcopy(piecePositions)

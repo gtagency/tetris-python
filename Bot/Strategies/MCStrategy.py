@@ -4,33 +4,43 @@ from math import log
 from operator import add
 import copy
 import sys
+from Bot.Game import Piece
 
 
 class Node(object):
 
-    def __init__(self, state, parent, rot_and_pos=None, _piece=None, next_piece=None):
+    def __init__(self, state, parent, rot_and_pos=None, this_piece=None, next_piece=None):
         self.state = state
         self.rot_and_pos = rot_and_pos
         self.children = []  # A list of Nodes
         self.parent = parent
         self.visits = 1
         self.reward = 0
-
-        self.this_piece = this_piece
         self.next_piece = next_piece
 
-        # TODO: initialize with tuples of piece rotations and positions.
-        # If this_piece is specified, use only those rotations, else, use all pieces.
-        self.possibleChildren = []  # A list of tuples of rotations and positions.
+        pieces = [this_piece] or [Piece.create(pType)
+                for pType in ['L', 'O', 'I', 'J', 'S', 'T', 'Z']]
+        self.possibleChildren = []  # A list of tuples of rotations and pos's.
+        for piece in pieces:
+            self.possibleChildren.extend([(rotation, position)
+                                          for rotation in piece._rotations
+                                          for position in positions])
 
     def getNextChild(self):
         """Returns a child Node with a randomly picked piece, rotation and position."""
-        pass
+        rotation, pos = choice(self.possibleChildren)
+        self.possibleChildren.remove((rotation, pos))
+        while not self.state.isDropPositionValid(rotation, pos):
+            rotation, pos = choice(self.possibleChildren)
+            self.possibleChildren.remove((rotation, pos))
+
+        return self.getChild(rotation, pos)
 
     def getChild(self, rotation, pos):
         """Returns a child Node with the rotation dropped from pos."""
-        # Node(new_state, self, rot_and_pos=(rotation, pos), this_piece=self.next_piece)
-        pass
+        new_state = self.state.projectRotationDown(rotation, pos)
+        child = Node(new_state, self, rot_and_pos=(rotation, pos), this_piece=self.next_piece)
+        return child
 
 
 class MonteCarloStrategy(AbstractStrategy):
@@ -53,35 +63,11 @@ class MonteCarloStrategy(AbstractStrategy):
                 return 1 - (len(new_field) - i)
         return 0
 
-    # def dfs(self, node, depth):
-        # if depth == 0:
-            # # Return this utility
-            # return [self.evaluate(node)]
-
-        # childUtilities = []
-        # for childField in node.state.getAllChildren():
-            # child = Node(childField, node)
-            # if not child in node.children and depth > 0:
-                # node.children.append(child)
-                # childUtilities.extend(self.dfs(child, depth - 1))
-        # return childUtilities
-
     def generateMCTree(self):
         currentState = self._game.me.field
-        root = Node(currentState, None)
-
-        stateChildren = root.state.getChildren(self._game.piece)
-
-        for i in xrange(len(stateChildren)):
-            child = Node(stateChildren[i], root)
-            childStateChildren = child.state.getChildren(self._game.nextPiece)
-
-            for j in xrange(len(childStateChildren)):
-                childsChild = Node(childStateChildren[j], child)
-                child.children.append(childsChild)
-
-            root.children.append(child)
-
+        root = Node(currentState, None,
+                this_piece=self._game.piece,
+                next_piece=self._game.nextPiece)
         return root
 
     def pickBestChild(self, root, final=False, isTreeRoot=False):
