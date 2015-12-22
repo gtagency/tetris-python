@@ -5,7 +5,7 @@ class Field:
     def __init__(self):
         self.width = 10
         self.height = 20
-        self.field = np.array([[0]*self.width]*self.height) #np.array([[0]*self.width, [0]*self.height], np.int32)
+        self.field = np.array([[0]*self.width]*self.height)
 
     def size(self):
         return self.width, self.height
@@ -60,7 +60,6 @@ class Field:
             piece = self._offsetPiece(piecePositions, offset)
         else:
             piece = piecePositions
-        # print 'p', piece
         field = copy.deepcopy(self.field)
         if self._checkIfPieceFits(piece):
             for x,y in piece:
@@ -76,67 +75,3 @@ class Field:
 
         return pieceValid(rotation, position) and dropPosValid(rotation, position)
 
-    # def getChildren(self, piece):
-        # """Given a 5x5 piece matrix, return all possible goal states.
-
-        # A goal state is any position in which the piece is on top of another."""
-
-        # offset = 3 # len(piece.positions())- 1
-
-        # children = []
-
-        # for i in reversed(range(- offset, self.height -1)):
-            # for j in range(- offset, self.width -1):
-                # pos = (j, i)
-                # for rotation in piece._rotations:
-                    # if self.isDropPositionValid(rotation, pos):
-                        # children.append((rotation, pos))
-
-        # # print children
-        # childrenFields = []
-        # for rotation, pos in children:
-            # childField = Field()
-            # childField.field = self.fitPiece(rotation, pos)
-            # if childField.field is not None:
-                # childrenFields.append(childField)
-
-        # # for x in childrenFields:
-        # #     print x.field
-        # return childrenFields
-
-    # def getAllChildren(self):
-        # findSpaces = lambda (x,y): [(p,q) for (p,q) in {(x-1,y),(x+1,y),(x,y-1),(x,y+1)} if (0<=p<self.width and 0<=q<self.height and self.field[q][p] <= 1)]
-
-        # def findPieces(loc):
-            # domino = {(loc,y) for y in findSpaces(loc)}
-            # tromino = set()
-            # for x,y in domino:
-                # tromino = tromino.union({(x,y,z) for z in findSpaces(y)})
-            # tetromino = set()
-            # for x,y,z in tromino:
-                # tetromino = tetromino.union({(x,y,z,w) for w in findSpaces(z)})
-            # return {tuple(set(x)) for x in tetromino}
-
-        # children = set()
-        # maxY = len(self.field) - 1
-        # for index, value in np.ndenumerate(self.field):
-            # y, x = index
-            # if value <= 1 and (y == maxY or self.field[y+1][x] > 1):
-                # children = children.union(findPieces((x,y)))
-
-        # # Children is a bunch of sets, each of those with four coordinates that
-        # # need to be set to 1. And everything needs to be wrapped in a Field.
-
-        # childrenFields = []
-        # for rotation in children:
-            # flippedRot = rotation #((y, x) for (x, y) in rotation)
-            # # print 'flippedRot', flippedRot
-            # # print 'newfield'
-            # # print self.fitPiece(flippedRot)
-            # childField = Field()
-            # childField.field = self.fitPiece(flippedRot)
-            # if childField.field is not None:
-                # # print 'hey'
-                # childrenFields.append(childField)
-        # # print childrenFields
-        # return childrenFields

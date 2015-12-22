@@ -126,90 +126,9 @@ class MonteCarloStrategy(AbstractStrategy):
         # Pick a goal.
         goal = self.searchMCTree(tree, self._game.timebank)
 
-        ### --- ###
-        # currentVisits = tree.visits
-        # C = 2 ** (0.5)
-        # score = lambda x: ((float(x.reward) / x.visits) + C * (log(float(currentVisits)) / float(x.visits))**(0.5))
-
-        # i = 0
-        # for child in tree.children[0].children[0].children:
-        # for child in tree.children:
-            # if i > 15:
-                # break
-            # sys.stderr.write(str(child.state.field) + '\n')
-            # sys.stderr.write(str(self.evaluate(child)) + '\n')
-            # sys.stderr.write('visits: ' + str(child.visits) + '\n')
-            # sys.stderr.write('reward: ' + str(child.reward) + '\n')
-            # sys.stderr.write('chance:' + str(score(child)) + '\n')
-            # i += 1
-
-        # sys.stderr.write('avgUtil: ' + str(avgUtil) + '\n')
-        # sys.stderr.write('root visits: ' + str(tree.visits) + '\n')
-        # sys.stderr.write('root reward: ' + str(tree.reward) + '\n')
-
-        # childVisits = [(child.visits, child.reward) for child in tree.children]
-        # sys.stderr.write('childVisitsAndRewards: \n' + str(childVisits) + '\n')
-
-        # childVisits = [(child.visits, child.reward) for child in tree.children[0].children]
-        # sys.stderr.write('childVisitsAndRewards2: \n' + str(childVisits) + '\n')
-
-        # sys.stderr.write('goal: \n' + str(goal.state.field))
-        # sys.stderr.write('goal util: ' + str(self.evaluate(goal)))
-        ### --- ###
-
         # Find actions to goal.
-        # actions = self.reverseDFS(goal, self._game.piecePosition, self._game.piece)
         actions = []
         actions.append('drop')
 
         return actions
 
-    # def reverseDFS(self, goal, piecePos, piece):
-
-        # closed = set()
-        # currentField = self._game.me.field
-        # openList = [(piecePos, piece, [])]
-        # # print goal.field
-
-
-        # while len(openList) != 0:
-            # piecePos, piece, intstructions = openList.pop()
-
-            # test = goal.field == currentField.fitPiece(piece.positions(), piecePos)
-            # if type(test) is not bool and test.all():
-                # #(type(test) is bool and test == True) or
-                # # print currentField.fitPiece(piece.positions(), piecePos)
-                # # print piecePos
-                # # print piece.positions()
-                # # print piece._rotateIndex
-                # return intstructions
-
-            # #rotations
-            # copyPiece = copy.deepcopy(piece)
-            # if copyPiece.turnLeft() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
-                # newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
-                # newState[2].append("turnleft")
-                # if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
-                    # openList.append(newState)
-                    # closed.add((tuple(newState[0]), newState[1]._rotateIndex))
-            # copyPiece = copy.deepcopy(piece)
-            # if copyPiece.turnRight() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
-                # newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
-                # newState[2].append("turnright")
-                # if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
-                    # openList.append(newState)
-                    # closed.add((tuple(newState[0]), newState[1]._rotateIndex))
-
-
-            # #normal moves
-            # for move in [[1,0],[-1,0],[0,1]]:
-                # offset = currentField._offsetPiece(piece.positions(), map(add, piecePos, move))
-                # if currentField._checkIfPieceFits(offset):
-                    # newState = (map(add, piecePos, move), copy.deepcopy(piece), copy.deepcopy(intstructions))
-                    # newState[2].append("left" if move == [-1,0] else ("right" if move == [1,0] else "down"))
-                    # if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
-                        # openList.append(newState)
-                        # closed.add((tuple(newState[0]), newState[1]._rotateIndex))
-
-
-        # return None
