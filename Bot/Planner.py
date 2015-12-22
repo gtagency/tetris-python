@@ -1,11 +1,9 @@
 from Bot.Strategies.RandomStrategy import RandomStrategy
-from Bot.Strategies.BasicStrategy import BasicStrategy
-from Bot.Strategies.BasicStrategy import MonteCarloStrategy
+from Bot.Strategies.MCStrategy import MonteCarloStrategy
 
 def create(strategyType, game):
     switcher = {
         "random": RandomStrategy(game),
-        "basic": BasicStrategy(game),
         "montecarlo": MonteCarloStrategy(game)
     }
 
