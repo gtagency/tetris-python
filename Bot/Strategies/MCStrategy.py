@@ -127,7 +127,25 @@ class MonteCarloStrategy(AbstractStrategy):
         goal = self.searchMCTree(tree, self._game.timebank)
 
         # Find actions to goal.
+        return self.get_actions_to_goal(goal)
+
+    def get_actions_to_goal(self, goal):
+        rotation, position = goal.rot_and_pos
         actions = []
+
+        while rotation != self._game.piece.positions():
+            actions.append('turnright')
+            self._game.piece.turnRight()
+
+        currentPos = self._game.piecePosition
+        while currentPos[1] != position[1]:
+            if currentPos[1] > position[1]:
+                actions.append('left')
+                curentPos[1] -= 1
+            else:
+                actions.append('right')
+                currentPos[1] += 1
+
         actions.append('drop')
 
         return actions
