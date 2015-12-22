@@ -72,7 +72,7 @@ class MonteCarloStrategy(AbstractStrategy):
                 next_piece=self._game.nextPiece)
         return root
 
-    def pickBestChild(self, root, final=False, isTreeRoot=False):
+    def pickBestChild(self, root):
         C = 2**(0.5)
         totalVisits = root.visits
 
@@ -82,7 +82,7 @@ class MonteCarloStrategy(AbstractStrategy):
             best = root.getNextChild()
         return best
 
-    def evaluate(self, root, debug=False):
+    def evaluate(self, root):
         """Returns utility of a state.
 
         +1 if a full line is formed
@@ -97,34 +97,34 @@ class MonteCarloStrategy(AbstractStrategy):
         else:
             return 0
 
-    def searchMCBranch(self, root, avgUtil=0.5, isTreeRoot=False):
+    def searchMCBranch(self, root):
         root.visits += 1
 
-        if len(root.children) == 0:
-            utility = self.evaluate(root)
-            if utility > avgUtil:
+        utility = self.evaluate(root)
+        if utility != 0:
+            if utility == 1:
                 root.reward += 1
             return utility
 
-        child = self.pickBestChild(root, isTreeRoot=isTreeRoot)
+        child = self.pickBestChild(root)
 
-        utility = self.searchMCBranch(child, avgUtil)
-        if utility > avgUtil:
+        utility = self.searchMCBranch(child)
+        if utility == 1:
             root.reward += 1
         return utility
 
-    def searchMCTree(self, tree, avgUtil):
+    def searchMCTree(self, tree, timeLimit):
         for i in range(2000):
-            self.searchMCBranch(tree, avgUtil, isTreeRoot=True)
+            self.searchMCBranch(tree)
 
-        return self.pickBestChild(tree, final=True)
+        return self.pickBestChild(tree)
 
     def choose(self):
         # Generate Monte Carlo Tree.
         tree = self.generateMCTree()
 
         # Pick a goal.
-        goal = self.searchMCTree(tree, avgUtil).state
+        goal = self.searchMCTree(tree, self._game.timebank)
 
         ### --- ###
         # currentVisits = tree.visits
