@@ -5,17 +5,6 @@ from operator import add
 import copy
 import sys
 
-def score_heuristic(new_field):
-    score = 0
-    for row in new_field:
-        if all(row):
-            score += 1
-    return float(score) / len(new_field)
-
-def height_heuristic(new_field):
-    for i, row in enumerate(new_field):
-        if any([x > 1 for x in row]):
-            return 1 - (float(len(new_field) - i) / len(new_field))
 
 
 class BasicStrategy(AbstractStrategy):
@@ -45,41 +34,52 @@ class MonteCarloStrategy(AbstractStrategy):
     def __init__(self, game):
         AbstractStrategy.__init__(self, game)
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
+        self.score = lambda x: (
+                (float(x.reward) / x.visits) +
+                C * (log(currentVisits) / float(x.visits))**(0.5))
 
-    def dfs(self, node, depth):
-        if depth == 0:
-            # Return this utility
-            return [self.evaluate(node)]
+    def has_full_line(self, field):
+        for row in field:
+            if all(row):
+                return True
+        return False
 
-        childUtilities = []
-        for childField in node.state.getAllChildren():
-            child = Node(childField, node)
-            if not child in node.children and depth > 0:
-                node.children.append(child)
-                childUtilities.extend(self.dfs(child, depth - 1))
-        return childUtilities
+    def get_height(self, field):
+        for i, row in enumerate(field):
+            if any([x > 1 for x in row]):
+                return 1 - (len(new_field) - i)
+        return 0
+
+    # def dfs(self, node, depth):
+        # if depth == 0:
+            # # Return this utility
+            # return [self.evaluate(node)]
+
+        # childUtilities = []
+        # for childField in node.state.getAllChildren():
+            # child = Node(childField, node)
+            # if not child in node.children and depth > 0:
+                # node.children.append(child)
+                # childUtilities.extend(self.dfs(child, depth - 1))
+        # return childUtilities
 
     def generateMCTree(self):
         currentState = self._game.me.field
         root = Node(currentState, None)
 
         stateChildren = root.state.getChildren(self._game.piece)
-        leafUtilities = []
+
         for i in xrange(len(stateChildren)):
             child = Node(stateChildren[i], root)
             childStateChildren = child.state.getChildren(self._game.nextPiece)
+
             for j in xrange(len(childStateChildren)):
                 childsChild = Node(childStateChildren[j], child)
-                leafUtilities.extend(self.dfs(childsChild, 1))
                 child.children.append(childsChild)
+
             root.children.append(child)
 
-        # generate average utility of leaf nodes
-        avgLeafUtil = float(sum(leafUtilities)) / len(leafUtilities) + 0.04
-
-        # sys.stderr.write('avgLeafUtil' + str(avgLeafUtil) + '\n')
-
-        return root, avgLeafUtil
+        return root
 
     def pickBestChild(self, root, final=False, isTreeRoot=False):
         C = 2**(0.5)
@@ -90,7 +90,6 @@ class MonteCarloStrategy(AbstractStrategy):
             return choice(childList)
         else:
             # exploration / exploitation
-            score = lambda x: ((float(x.reward) / x.visits) + C * (log(currentVisits) / float(x.visits))**(0.5))
             if isTreeRoot and False:
                 sys.stderr.write(str([(score(child), child.visits) for child in childList]) + '\n')
             sc, best = max([(score(child), child) for child in childList])
@@ -101,13 +100,19 @@ class MonteCarloStrategy(AbstractStrategy):
             return best
 
     def evaluate(self, root, debug=False):
-        weights = [0, 1]
+        """Returns utility of a state.
+
+        +1 if a full line is formed
+        -1 if height goes over maxHeight
+        0 if not a sink"""
         field = root.state.field
-        if debug:
-            print 'scoreH:', score_heuristic(field)
-            print 'heightH:', height_heuristic(field)
-        score = weights[0] * score_heuristic(field) + weights[1] * height_heuristic(field)
-        return float(score) / sum(weights)
+
+        if get_height(field) > 14:
+            return -1
+        elif has_full_line(field):
+            return +1
+        else:
+            return 0
 
     def searchMCBranch(self, root, avgUtil=0.5, isTreeRoot=False):
         root.visits += 1
