@@ -8,12 +8,29 @@ import sys
 
 class Node(object):
 
-    def __init__(self, state, parent):
+    def __init__(self, state, parent, rot_and_pos=None, _piece=None, next_piece=None):
         self.state = state
-        self.children = []
+        self.rot_and_pos = rot_and_pos
+        self.children = []  # A list of Nodes
         self.parent = parent
         self.visits = 1
         self.reward = 0
+
+        self.this_piece = this_piece
+        self.next_piece = next_piece
+
+        # TODO: initialize with tuples of piece rotations and positions.
+        # If this_piece is specified, use only those rotations, else, use all pieces.
+        self.possibleChildren = []  # A list of tuples of rotations and positions.
+
+    def getNextChild(self):
+        """Returns a child Node with a randomly picked piece, rotation and position."""
+        pass
+
+    def getChild(self, rotation, pos):
+        """Returns a child Node with the rotation dropped from pos."""
+        # Node(new_state, self, rot_and_pos=(rotation, pos), this_piece=self.next_piece)
+        pass
 
 
 class MonteCarloStrategy(AbstractStrategy):
