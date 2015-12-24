@@ -143,7 +143,7 @@ class MonteCarloStrategy(AbstractStrategy):
         return utility
 
     def searchMCTree(self, tree, timeLimit):
-        for i in range(400):
+        for i in range(900):
             print 'iter', i
             print [(x.visits, x.reward) for x in tree.children]
             self.searchMCBranch(tree)
@@ -157,6 +157,8 @@ class MonteCarloStrategy(AbstractStrategy):
         # Pick a goal.
         goal = self.searchMCTree(tree, self._game.timebank)
 
+        print str(goal.state.field)
+
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
 
@@ -168,11 +170,11 @@ class MonteCarloStrategy(AbstractStrategy):
             actions.append('turnright')
             self._game.piece.turnRight()
 
-        currentPos = self._game.piecePosition
-        while currentPos[0] != position[0]:
-            if currentPos[0] > position[0]:
+        currentPos = list(self._game.piecePosition)
+        while currentPos[0] != position:
+            if currentPos[0] > position:
                 actions.append('left')
-                curentPos[0] -= 1
+                currentPos[0] -= 1
             else:
                 actions.append('right')
                 currentPos[0] += 1
