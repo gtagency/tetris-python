@@ -3,7 +3,7 @@ from AbstractStrategy import AbstractStrategy
 from math import log
 from operator import add
 import copy
-# import sys
+import sys
 import datetime
 from Bot.Game import Piece
 from Bot.Game.Field import Field
@@ -116,7 +116,7 @@ class MonteCarloStrategy(AbstractStrategy):
         0 if not a sink"""
         field = root.state.field
 
-        if self.get_height(field) > 7:
+        if self.get_height(field) > 4:
             return -1
         elif self.has_full_line(field):
             return +1
@@ -144,7 +144,7 @@ class MonteCarloStrategy(AbstractStrategy):
         return utility
 
     def searchMCTree(self, tree, timeLimit):
-        timeLimit = datetime.timedelta(milliseconds=int(timeLimit) * 0.85)
+        timeLimit = datetime.timedelta(milliseconds=int(timeLimit) * 0.95)
         begin = datetime.datetime.utcnow()
 
         while datetime.datetime.utcnow() - begin < timeLimit:
@@ -162,6 +162,7 @@ class MonteCarloStrategy(AbstractStrategy):
         goal = self.searchMCTree(tree, self._game.timebank)
 
         # print str(goal.state.field)
+        sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]))
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
