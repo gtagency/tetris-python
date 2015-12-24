@@ -27,11 +27,13 @@ class Field:
         return field_s
 
     def projectRotationDown(self, piecePositions, offset):
+        piecePositions = self._offsetPiece(piecePositions, offset)
+
         field_s = None
         for height in range(0, self.height-1):
             tmp = self.fitPiece(piecePositions, [0, height])
 
-            if not tmp:
+            if tmp is None or len(tmp) == 0:
                 break
             field_s = tmp
 
@@ -71,7 +73,7 @@ class Field:
 
     def isDropPositionValid(self, rotation, position):
         pieceValid = lambda piece, position: all(coords[1]+position[1]<self.height and 0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] <= 1 for coords in rotation)
-        dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] > 1 for coords in rotation)
+        # dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] > 1 for coords in rotation)
 
-        return pieceValid(rotation, position) and dropPosValid(rotation, position)
+        return pieceValid(rotation, position) # and dropPosValid(rotation, position)
 

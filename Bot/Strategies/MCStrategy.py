@@ -5,6 +5,7 @@ from operator import add
 import copy
 import sys
 from Bot.Game import Piece
+from Bot.Game.Field import Field
 
 
 class Node(object):
@@ -18,30 +19,48 @@ class Node(object):
         self.reward = 0
         self.next_piece = next_piece
 
-        pieces = [this_piece] or [Piece.create(pType)
-                for pType in ['L', 'O', 'I', 'J', 'S', 'T', 'Z']]
+        if this_piece is not None:
+            pieces = [this_piece]
+        else:
+            pieces = [Piece.create(pType) for pType in ['L', 'O', 'I', 'J', 'S', 'T', 'Z']]
+
         self.possibleChildren = []  # A list of tuples of rotations and pos's.
         for piece in pieces:
             self.possibleChildren.extend([(rotation, position)
                                           for rotation in piece._rotations
-                                          for position in range(len(self.state[0])]))
+                                          for position in range(-3, len(self.state.field[0]) - 1)])
+
+    def hasNextChild(self):
+        return len(self.possibleChildren) != 0
 
     def getNextChild(self):
         """Returns a child Node with a randomly picked piece, rotation and position."""
         rotation, pos = choice(self.possibleChildren)
         self.possibleChildren.remove((rotation, pos))
-        while not self.state.isDropPositionValid(rotation, pos):
-            rotation, pos = choice(self.possibleChildren)
-            self.possibleChildren.remove((rotation, pos))
+
+        while not self.state.isDropPositionValid(rotation, (pos, 0)):
+            if self.hasNextChild():
+                return self.getNextChild()
+            else:
+                return None
 
         return self.getChild(rotation, pos)
 
     def getChild(self, rotation, pos):
         """Returns a child Node with the rotation dropped from pos."""
-        new_state = self.state.projectRotationDown(rotation, pos)
+        new_field = self.state.projectRotationDown(rotation, (pos, 0))
+        new_state = Field()
+        new_state.field = new_field
         child = Node(new_state, self, rot_and_pos=(rotation, pos), this_piece=self.next_piece)
         self.children.append(child)
         return child
+
+
+class PhantomNode(object):
+
+    def __init__(self):
+        self.visits = 1
+        self.reward = 0
 
 
 class MonteCarloStrategy(AbstractStrategy):
@@ -62,7 +81,7 @@ class MonteCarloStrategy(AbstractStrategy):
     def get_height(self, field):
         for i, row in enumerate(field):
             if any([x > 1 for x in row]):
-                return 1 - (len(new_field) - i)
+                return (len(field) - i)
         return 0
 
     def generateMCTree(self):
@@ -76,10 +95,16 @@ class MonteCarloStrategy(AbstractStrategy):
         C = 2**(0.5)
         totalVisits = root.visits
 
-        _, best = max([(self.score(child, totalVisits), child) for child in root.children] +
-                      [(self.score({ visits: 1, reward: 0 }, totalVisits), 'phantom')])
-        if best === 'phantom':
+        if len(root.children) > 0:
+            score, best = max([(self.score(child, totalVisits), child) for child in root.children])
+        else:
+            score = float('-inf')
+
+        if root.hasNextChild() and score < self.score(PhantomNode(), totalVisits):
             best = root.getNextChild()
+            if best is None:
+                return self.pickBestChild(root)
+
         return best
 
     def evaluate(self, root):
@@ -90,9 +115,9 @@ class MonteCarloStrategy(AbstractStrategy):
         0 if not a sink"""
         field = root.state.field
 
-        if get_height(field) > 14:
+        if self.get_height(field) > 7:
             return -1
-        elif has_full_line(field):
+        elif self.has_full_line(field):
             return +1
         else:
             return 0
@@ -108,13 +133,19 @@ class MonteCarloStrategy(AbstractStrategy):
 
         child = self.pickBestChild(root)
 
-        utility = self.searchMCBranch(child)
+        if child is None:
+            utility = -1
+        else:
+            utility = self.searchMCBranch(child)
+
         if utility == 1:
             root.reward += 1
         return utility
 
     def searchMCTree(self, tree, timeLimit):
-        for i in range(2000):
+        for i in range(400):
+            print 'iter', i
+            print [(x.visits, x.reward) for x in tree.children]
             self.searchMCBranch(tree)
 
         return self.pickBestChild(tree)
@@ -138,13 +169,13 @@ class MonteCarloStrategy(AbstractStrategy):
             self._game.piece.turnRight()
 
         currentPos = self._game.piecePosition
-        while currentPos[1] != position[1]:
-            if currentPos[1] > position[1]:
+        while currentPos[0] != position[0]:
+            if currentPos[0] > position[0]:
                 actions.append('left')
-                curentPos[1] -= 1
+                curentPos[0] -= 1
             else:
                 actions.append('right')
-                currentPos[1] += 1
+                currentPos[0] += 1
 
         actions.append('drop')
 
