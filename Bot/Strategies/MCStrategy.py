@@ -3,7 +3,8 @@ from AbstractStrategy import AbstractStrategy
 from math import log
 from operator import add
 import copy
-import sys
+# import sys
+import datetime
 from Bot.Game import Piece
 from Bot.Game.Field import Field
 
@@ -143,10 +144,13 @@ class MonteCarloStrategy(AbstractStrategy):
         return utility
 
     def searchMCTree(self, tree, timeLimit):
-        for i in range(900):
-            print 'iter', i
-            print [(x.visits, x.reward) for x in tree.children]
+        timeLimit = datetime.timedelta(milliseconds=int(timeLimit) * 0.85)
+        begin = datetime.datetime.utcnow()
+
+        while datetime.datetime.utcnow() - begin < timeLimit:
             self.searchMCBranch(tree)
+            # print str(datetime.datetime.utcnow() - begin)
+            # print [(x.visits, x.reward) for x in tree.children]
 
         return self.pickBestChild(tree)
 
@@ -157,7 +161,7 @@ class MonteCarloStrategy(AbstractStrategy):
         # Pick a goal.
         goal = self.searchMCTree(tree, self._game.timebank)
 
-        print str(goal.state.field)
+        # print str(goal.state.field)
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
