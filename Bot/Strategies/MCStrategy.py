@@ -68,7 +68,8 @@ class MonteCarloStrategy(AbstractStrategy):
     def __init__(self, game):
         AbstractStrategy.__init__(self, game)
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
-        self.C = 2 ** (0.5)
+        # self.C = 2 ** (0.5)
+        self.C = 1.0
         self.score = lambda x, totalVisits: (
                 (float(x.reward) / x.visits) +
                 self.C * (log(totalVisits) / float(x.visits))**(0.5))
@@ -85,6 +86,19 @@ class MonteCarloStrategy(AbstractStrategy):
                 return (len(field) - i)
         return 0
 
+    def get_line_fillness(self, field, height=None):
+        if height is None:
+            height = self.get_height(field)
+
+        if height == 0:
+            return 0
+
+        num_blocks = 0
+        for row in field:
+            num_blocks += len(filter(lambda x: x > 1, row))
+
+        return num_blocks / (10.0 * height)
+
     def generateMCTree(self):
         currentState = self._game.me.field
         root = Node(currentState, None,
@@ -93,7 +107,6 @@ class MonteCarloStrategy(AbstractStrategy):
         return root
 
     def pickBestChild(self, root):
-        C = 2**(0.5)
         totalVisits = root.visits
 
         if len(root.children) > 0:
@@ -101,14 +114,14 @@ class MonteCarloStrategy(AbstractStrategy):
         else:
             score = float('-inf')
 
-        if root.hasNextChild() and score < self.score(PhantomNode(), totalVisits):
+        if root.hasNextChild() and score <= self.score(PhantomNode(), totalVisits):
             best = root.getNextChild()
             if best is None:
                 return self.pickBestChild(root)
 
         return best
 
-    def evaluate(self, root):
+    def evaluate(self, root, treeHeight):
         """Returns utility of a state.
 
         +1 if a full line is formed
@@ -116,17 +129,29 @@ class MonteCarloStrategy(AbstractStrategy):
         0 if not a sink"""
         field = root.state.field
 
-        if self.get_height(field) > 4:
-            return -1
-        elif self.has_full_line(field):
+        if self.has_full_line(field):
             return +1
-        else:
-            return 0
 
-    def searchMCBranch(self, root):
+        field_height = self.get_height(field)
+
+        if self.get_line_fillness(field, field_height) >= 0.8:
+            # print field
+            # print self.get_line_fillness(field, field_height)
+            return +1
+
+        if treeHeight <= 4:
+            if field_height > 4:
+                return -1
+        else:
+            if field_height > treeHeight + 1:
+                return -1
+
+        return 0
+
+    def searchMCBranch(self, root, treeHeight):
         root.visits += 1
 
-        utility = self.evaluate(root)
+        utility = self.evaluate(root, treeHeight)
         if utility != 0:
             if utility == 1:
                 root.reward += 1
@@ -137,32 +162,39 @@ class MonteCarloStrategy(AbstractStrategy):
         if child is None:
             utility = -1
         else:
-            utility = self.searchMCBranch(child)
+            utility = self.searchMCBranch(child, treeHeight)
 
         if utility == 1:
             root.reward += 1
         return utility
 
+    def pick_highest_reward(self, root):
+        _, best = max((x.reward, x) for x in root.children)
+        return best
+
     def searchMCTree(self, tree, timeLimit):
-        timeLimit = datetime.timedelta(milliseconds=int(timeLimit) * 0.95)
+        timeLimit = datetime.timedelta(milliseconds=int(timeLimit))
         begin = datetime.datetime.utcnow()
 
+        treeHeight = self.get_height(tree.state.field)
+
         while datetime.datetime.utcnow() - begin < timeLimit:
-            self.searchMCBranch(tree)
+            self.searchMCBranch(tree, treeHeight)
             # print str(datetime.datetime.utcnow() - begin)
             # print [(x.visits, x.reward) for x in tree.children]
 
-        return self.pickBestChild(tree)
+        # return self.pickBestChild(tree)
+        return self.pick_highest_reward(tree)
 
     def choose(self):
         # Generate Monte Carlo Tree.
         tree = self.generateMCTree()
 
         # Pick a goal.
-        goal = self.searchMCTree(tree, self._game.timebank)
+        goal = self.searchMCTree(tree, self._game.timePerMove)
 
         # print str(goal.state.field)
-        sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]))
+        sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
