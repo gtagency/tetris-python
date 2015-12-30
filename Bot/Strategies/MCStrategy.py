@@ -1,6 +1,7 @@
 from random import randint, choice
 from AbstractStrategy import AbstractStrategy
 from math import log
+import math
 from operator import add
 import copy
 import sys
@@ -19,6 +20,7 @@ class Node(object):
         self.visits = 1
         self.reward = 0
         self.next_piece = next_piece
+        self.this_piece = this_piece
 
         if this_piece is not None:
             pieces = [this_piece]
@@ -80,6 +82,25 @@ class MonteCarloStrategy(AbstractStrategy):
                 return True
         return False
 
+    def newHolesRBad(self, field):
+        #only counts holes under the newly placed block
+        height = len(field)
+        width = len(field[0])
+        holes = 0
+        for i in range(width):
+            empty = True
+            for j in range(height):
+                k = field[j][i]
+                if k == 4:
+                    if empty:
+                        empty = False
+                elif k == 0:
+                    if not empty:
+                        holes += 1
+                else:
+                    empty = True
+        return math.e ** (-1 * holes)
+
     def get_height(self, field):
         for i, row in enumerate(field):
             if any([x > 1 for x in row]):
@@ -128,22 +149,27 @@ class MonteCarloStrategy(AbstractStrategy):
         -1 if height goes over maxHeight
         0 if not a sink"""
         field = root.state.field
+        if root.parent == None:
+            return 0
 
         if self.has_full_line(field):
             return +1
 
         field_height = self.get_height(field)
-
-        if self.get_line_fillness(field, field_height) >= 0.8:
+        holes = self.newHolesRBad(field)
+        if holes == 1 and field_height != 0 and (field_height <= treeHeight+1 or field_height <= 4):
+            #print field
+            return 1
+        if self.get_line_fillness(field, field_height) >= 0.8 and holes == 1:
             # print field
             # print self.get_line_fillness(field, field_height)
             return +1
 
         if treeHeight <= 4:
-            if field_height > 4:
+            if field_height > 4 and not isinstance(root.this_piece, Piece.IPiece):
                 return -1
         else:
-            if field_height > treeHeight + 1:
+            if field_height > treeHeight + 1 and not isinstance(root.this_piece, Piece.IPiece):
                 return -1
 
         return 0
@@ -219,4 +245,3 @@ class MonteCarloStrategy(AbstractStrategy):
         actions.append('drop')
 
         return actions
-

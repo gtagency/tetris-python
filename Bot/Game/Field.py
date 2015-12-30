@@ -76,4 +76,3 @@ class Field:
         # dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] > 1 for coords in rotation)
 
         return pieceValid(rotation, position) # and dropPosValid(rotation, position)
-
