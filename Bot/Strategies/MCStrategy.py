@@ -157,12 +157,14 @@ class MonteCarloStrategy(AbstractStrategy):
 
         field_height = self.get_height(field)
         holes = self.newHolesRBad(field)
-        if holes == 1 and field_height != 0 and (field_height <= treeHeight+1 or field_height <= 4):
-            #print field
-            return 1
-        if self.get_line_fillness(field, field_height) >= 0.8 and holes == 1:
+
+        if self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.9:
             # print field
             # print self.get_line_fillness(field, field_height)
+            return +1
+
+        if holes == 1 and field_height != 0 and (field_height <= treeHeight+1 or field_height <= 4):
+            #print field
             return +1
 
         if treeHeight <= 4:
@@ -221,6 +223,7 @@ class MonteCarloStrategy(AbstractStrategy):
 
         # print str(goal.state.field)
         sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
+        sys.stderr.write('holes ' + str(self.newHolesRBad(goal.state.field)) + '\n')
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
