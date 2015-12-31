@@ -187,23 +187,30 @@ class MonteCarloStrategy(AbstractStrategy):
         field_height = self.get_height(field)
         holes = self.newHolesRBad(field)
 
-        if self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.9:
+        # if holes == 1 and field_height != 0: #and (field_height <= treeHeight+1 or field_height <= 4):
+            # #print field
+            # return +1
+
+        if self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.8:
             # print field
             # print self.get_line_fillness(field, field_height)
             return +1
 
-        if holes == 1 and field_height != 0 and (field_height <= treeHeight+1 or field_height <= 4):
-            #print field
-            return +1
+        if holes < 0.1:
+            return -1
 
+        # TODO: make it
+        # get_col_std_dev(with normal std dev, not using treeHeightsMean) > 1.2 * std dev of tree root, or something like that.
         if self.get_col_height_std_dev(field, treeHeightsMean) > 2.4:
             return -1
 
+        # find drastic differences in any col's height and if bigger than 4, return -1
+
         if treeHeight <= 4:
-            if field_height > 4 and not isinstance(root.this_piece, Piece.IPiece):
+            if field_height > 4:# and not isinstance(root.this_piece, Piece.IPiece):
                 return -1
         else:
-            if field_height > treeHeight + 1 and not isinstance(root.this_piece, Piece.IPiece):
+            if field_height > treeHeight + 2:# and not isinstance(root.this_piece, Piece.IPiece):
                 return -1
 
         return 0
@@ -257,6 +264,7 @@ class MonteCarloStrategy(AbstractStrategy):
         # print str(goal.state.field)
         sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
         sys.stderr.write('holes ' + str(self.newHolesRBad(goal.state.field)) + '\n')
+        sys.stderr.write('initialholes ' + str(self.newHolesRBad(tree.state.field)) + '\n')
         treeHeightsMean = self.get_mean(self.get_col_heights(tree.state.field))
         sys.stderr.write('colhstddev' + str(self.get_col_height_std_dev(goal.state.field, treeHeightsMean)) + '\n')
 
