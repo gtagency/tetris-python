@@ -72,8 +72,8 @@ class MonteCarloStrategy(AbstractStrategy):
     def __init__(self, game):
         AbstractStrategy.__init__(self, game)
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
-        # self.C = 2 ** (0.5)
-        self.C = 1.0
+        self.C = 2 ** (0.5)
+        # self.C = 1.0
         self.score = lambda x, totalVisits: (
                 (float(x.reward) / x.visits) +
                 self.C * (log(totalVisits) / float(x.visits))**(0.5))
@@ -108,10 +108,11 @@ class MonteCarloStrategy(AbstractStrategy):
                     col_height[col] = len(field) - col
         return col_height
 
-    def get_col_height_std_dev(self, field, treeHeightsMean):
+    def get_col_height_std_dev(self, field):
         col_height = self.get_col_heights(field)
-        deviations = map(lambda x: (x - treeHeightsMean)**2, col_height)
-        return (self.get_mean(deviations)) ** 0.5
+        return self.get_std_dev(col_height)
+        # deviations = map(lambda x: (x - treeColStdDev)**2, col_height)
+        # return (self.get_mean(deviations)) ** 0.5
 
     def newHolesRBad(self, field):
         #only counts holes under the newly placed block
@@ -259,7 +260,7 @@ class MonteCarloStrategy(AbstractStrategy):
         if child is None:
             utility = -1
         else:
-            utility = self.searchMCBranch(child, treeHeight, treeHeightsMean)
+            utility = self.searchMCBranch(child, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
 
         if utility == 1:
             root.reward += 1
@@ -274,10 +275,26 @@ class MonteCarloStrategy(AbstractStrategy):
         begin = datetime.datetime.utcnow()
 
         treeHeight = self.get_height(tree.state.field)
-        treeHeightsMean = self.get_mean(self.get_col_heights(tree.state.field))
+        # treeColStdDev = self.get_mean(self.get_col_heights(tree.state.field))
+        treeColStdDev = self.get_col_height_std_dev(tree.state.field)
+        treeLineFill = self.get_line_fillness(tree.state.field, treeHeight)
+        treeColHeights = self.get_col_heights(tree.state.field)
+
+        self.stats = {
+                'goodfill_noholes': 0,
+                'full_line': 0,
+                'line>0.8 holes>0.8': 0,
+                'holes<0.1': 0,
+                'line<0.8 holes not 1': 0,
+                'colStdDev>2.8tree': 0,
+                'height>=4': 0,
+                'continue': 0,
+                'majorHeightDiff': 0,
+                'height>tree+2': 0
+                }
 
         while datetime.datetime.utcnow() - begin < timeLimit:
-            self.searchMCBranch(tree, treeHeight, treeHeightsMean)
+            self.searchMCBranch(tree, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
             # print str(datetime.datetime.utcnow() - begin)
             # print [(x.visits, x.reward) for x in tree.children]
 
@@ -292,11 +309,15 @@ class MonteCarloStrategy(AbstractStrategy):
         goal = self.searchMCTree(tree, self._game.timePerMove)
 
         # print str(goal.state.field)
+        sys.stderr.write(str(tree.visits) + 'vs ' + str(tree.reward) + 'rd' '\n')
         sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
         sys.stderr.write('holes ' + str(self.newHolesRBad(goal.state.field)) + '\n')
         sys.stderr.write('initialholes ' + str(self.newHolesRBad(tree.state.field)) + '\n')
-        treeHeightsMean = self.get_mean(self.get_col_heights(tree.state.field))
-        sys.stderr.write('colhstddev' + str(self.get_col_height_std_dev(goal.state.field, treeHeightsMean)) + '\n')
+        treeColStdDev = self.get_col_height_std_dev(tree.state.field)
+        sys.stderr.write('treehstddev' + str(treeColStdDev) + '\n')
+        sys.stderr.write('colhstddev' + str(self.get_col_height_std_dev(goal.state.field)) + '\n')
+
+        sys.stderr.write('STATS: ' + str(self.stats) + '\n')
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
