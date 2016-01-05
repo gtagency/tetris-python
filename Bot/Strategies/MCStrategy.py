@@ -19,6 +19,8 @@ class Node(object):
         self.parent = parent
         self.visits = 1
         self.reward = 0
+        self.util = None
+        self.stat = ''
         self.next_piece = next_piece
         self.this_piece = this_piece
 
@@ -171,54 +173,82 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return best
 
-    def evaluate(self, root, treeHeight, treeHeightsMean):
+    def evaluate(self, root, treeHeight, treeColStdDev, treeLineFill, treeColHeights):
         """Returns utility of a state.
 
         +1 if a full line is formed
         -1 if height goes over maxHeight
         0 if not a sink"""
         field = root.state.field
-        if root.parent == None:
-            return 0
-
-        if self.has_full_line(field):
-            return +1
 
         field_height = self.get_height(field)
+
         holes = self.newHolesRBad(field)
+
+        if self.has_full_line(field):
+            root.stat = 'full_line'
+            return +1
+
+        # sys.stderr.write('holes ' + str(holes) + '\n')
 
         # if holes == 1 and field_height != 0: #and (field_height <= treeHeight+1 or field_height <= 4):
             # #print field
             # return +1
 
-        if self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.8:
-            # print field
-            # print self.get_line_fillness(field, field_height)
+        # if treeHeight < 4 and self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.4:
+            # # print field
+            # # print self.get_line_fillness(field, field_height)
+            # self.stats['line>0.8 holes>0.8'] += 1
+            # return +1
+
+        if holes < 0.2:
+            root.stat = 'holes<0.1'
+            return -1
+
+        # if self.get_line_fillness(field, field_height) < (0.9 * treeLineFill) and holes < 0.37:
+            # root.stat = 'line<0.8 holes not 1'
+            # return -1
+
+        fieldColHeights = self.get_col_heights(field)
+        heightDiffs = [abs(fieldColHeights[i] - treeColHeights[i]) for i in range(len(fieldColHeights))]
+
+        # if any(map(lambda x: x > 4, heightDiffs)):
+            # sys.stderr.write('majorHeightDiff' + str(map(lambda x: x > 4, heightDiffs)) + '\n')
+            # root.stat = 'majorHeightDiff'
+            # return -1
+
+        # TODO find drastic differences in any col's height and if bigger than 4, return -1
+        colStdDev = self.get_col_height_std_dev(field)
+
+        if treeHeight > 0 and colStdDev > (2.8 *  (treeColStdDev)):
+            root.stat = 'colStdDev>2.8tree'
+            return -1
+
+        # if treeHeight < 4:
+            # if field_height >= 4:# and not isinstance(root.this_piece, Piece.IPiece):
+                # self.stats['height>=4'] += 1
+                # return -1
+        # else:
+        if field_height > treeHeight + 3:# and not isinstance(root.this_piece, Piece.IPiece):
+            root.stat = 'height>tree+2'
+            return -1
+
+        if self.get_line_fillness(field, field_height) > (1.1 * treeLineFill) and holes == 1:
+            root.stat = 'goodfill_noholes'
             return +1
 
-        if holes < 0.1:
-            return -1
-
-        # TODO: make it
-        # get_col_std_dev(with normal std dev, not using treeHeightsMean) > 1.2 * std dev of tree root, or something like that.
-        if self.get_col_height_std_dev(field, treeHeightsMean) > 2.4:
-            return -1
-
-        # find drastic differences in any col's height and if bigger than 4, return -1
-
-        if treeHeight <= 4:
-            if field_height > 4:# and not isinstance(root.this_piece, Piece.IPiece):
-                return -1
-        else:
-            if field_height > treeHeight + 2:# and not isinstance(root.this_piece, Piece.IPiece):
-                return -1
+        root.stat = 'continue'
 
         return 0
 
-    def searchMCBranch(self, root, treeHeight, treeHeightsMean):
+    def searchMCBranch(self, root, treeHeight, treeColStdDev, treeLineFill, treeColHeights):
         root.visits += 1
 
-        utility = self.evaluate(root, treeHeight, treeHeightsMean)
+        if root.util is None:
+            root.util = self.evaluate(root, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
+        utility = root.util
+        self.stats[root.stat] += 1
+
         if utility != 0:
             if utility == 1:
                 root.reward += 1
