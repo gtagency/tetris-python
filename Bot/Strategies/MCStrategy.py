@@ -8,6 +8,7 @@ import sys
 import datetime
 from Bot.Game import Piece
 from Bot.Game.Field import Field
+from collections import Counter
 
 
 class Node(object):
@@ -202,8 +203,8 @@ class MonteCarloStrategy(AbstractStrategy):
             # self.stats['line>0.8 holes>0.8'] += 1
             # return +1
 
-        if holes < 0.2:
-            root.stat = 'holes<0.1'
+        if holes < 0.5:
+            root.stat = 'holes<0.5'
             return -1
 
         # if self.get_line_fillness(field, field_height) < (0.9 * treeLineFill) and holes < 0.37:
@@ -221,8 +222,8 @@ class MonteCarloStrategy(AbstractStrategy):
         # TODO find drastic differences in any col's height and if bigger than 4, return -1
         colStdDev = self.get_col_height_std_dev(field)
 
-        if treeHeight > 0 and colStdDev > (2.8 *  (treeColStdDev)):
-            root.stat = 'colStdDev>2.8tree'
+        if treeHeight > 0 and colStdDev > (1.6 *  (treeColStdDev)):
+            root.stat = 'colStdDev>1.6tree'
             return -1
 
         # if treeHeight < 4:
@@ -231,7 +232,7 @@ class MonteCarloStrategy(AbstractStrategy):
                 # return -1
         # else:
         if field_height > treeHeight + 3:# and not isinstance(root.this_piece, Piece.IPiece):
-            root.stat = 'height>tree+2'
+            root.stat = 'height>tree+3'
             return -1
 
         if self.get_line_fillness(field, field_height) > (1.1 * treeLineFill) and holes == 1:
@@ -280,18 +281,7 @@ class MonteCarloStrategy(AbstractStrategy):
         treeLineFill = self.get_line_fillness(tree.state.field, treeHeight)
         treeColHeights = self.get_col_heights(tree.state.field)
 
-        self.stats = {
-                'goodfill_noholes': 0,
-                'full_line': 0,
-                'line>0.8 holes>0.8': 0,
-                'holes<0.1': 0,
-                'line<0.8 holes not 1': 0,
-                'colStdDev>2.8tree': 0,
-                'height>=4': 0,
-                'continue': 0,
-                'majorHeightDiff': 0,
-                'height>tree+2': 0
-                }
+        self.stats = Counter()
 
         while datetime.datetime.utcnow() - begin < timeLimit:
             self.searchMCBranch(tree, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
