@@ -81,7 +81,7 @@ class MonteCarloStrategy(AbstractStrategy):
 
     def has_full_line(self, field):
         for row in field:
-            if all(row):
+            if all(map(lambda x: x != 0 and x != 3, row)):
                 return True
         return False
 
