@@ -14,7 +14,7 @@ from collections import Counter
 class Node(object):
 
     def __init__(self, state, parent, rot_and_pos=None, this_piece=None, next_piece=None):
-        self.state = state
+        self.state = state # Field
         self.rot_and_pos = rot_and_pos
         self.children = []  # A list of Nodes
         self.parent = parent
@@ -24,6 +24,7 @@ class Node(object):
         self.stat = ''
         self.next_piece = next_piece
         self.this_piece = this_piece
+        self.params = None
 
         if this_piece is not None:
             pieces = [this_piece]
@@ -35,6 +36,19 @@ class Node(object):
             self.possibleChildren.extend([(rotation, position)
                                           for rotation in piece._rotations
                                           for position in range(-3, len(self.state.field[0]) - 1)])
+
+    def calcParams(self):
+        # heigh, colStdDev, lineFill, colHeights
+        height = self.get_height(self.state.field)
+
+        self.params = {
+            'has_full_line': self.has_full_line(self.state.field),
+            'height': self.get_height(self.state.field),
+            'col_std_dev': self.get_col_height_std_dev(self.state.field),
+            'line_fill': self.get_line_fillness(self.state.field, height),
+            'col_heights': self.get_col_heights(self.state.field),
+            'holes': self.newHolesRBad(self.state.field)
+        }
 
     def hasNextChild(self):
         return len(self.possibleChildren) != 0
@@ -61,23 +75,72 @@ class Node(object):
         self.children.append(child)
         return child
 
+    def evaluate(self, root, treeParams):
+        """Returns utility of a state.
 
-class PhantomNode(object):
+        +1 if a full line is formed
+        -1 if height goes over maxHeight
+        0 if not a sink"""
+        if self.params is None:
+            self.calcParams()
 
-    def __init__(self):
-        self.visits = 1
-        self.reward = 0
+        field = root.state.field
 
 
-class MonteCarloStrategy(AbstractStrategy):
-    def __init__(self, game):
-        AbstractStrategy.__init__(self, game)
-        self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
-        self.C = 2 ** (0.5)
-        # self.C = 1.0
-        self.score = lambda x, totalVisits: (
-                (float(x.reward) / x.visits) +
-                self.C * (log(totalVisits) / float(x.visits))**(0.5))
+        if self.params['has_full_line']:
+            root.stat = 'full_line'
+            return +1
+
+        # sys.stderr.write('holes ' + str(holes) + '\n')
+
+        # if holes == 1 and field_height != 0: #and (field_height <= treeHeight+1 or field_height <= 4):
+            # #print field
+            # return +1
+
+        # if treeHeight < 4 and self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.4:
+            # # print field
+            # # print self.get_line_fillness(field, field_height)
+            # self.stats['line>0.8 holes>0.8'] += 1
+            # return +1
+
+        if self.params['holes'] < 0.5:
+            root.stat = 'holes<0.5'
+            return -1
+
+        # if self.get_line_fillness(field, field_height) < (0.9 * treeLineFill) and holes < 0.37:
+            # root.stat = 'line<0.8 holes not 1'
+            # return -1
+
+        fieldColHeights = self.params['col_heights']
+        treeColHeights = treeParams['col_heights']
+        heightDiffs = [abs(fieldColHeights[i] - treeColHeights[i]) for i in range(len(fieldColHeights))]
+
+        # if any(map(lambda x: x > 4, heightDiffs)):
+            # sys.stderr.write('majorHeightDiff' + str(map(lambda x: x > 4, heightDiffs)) + '\n')
+            # root.stat = 'majorHeightDiff'
+            # return -1
+
+        # TODO find drastic differences in any col's height and if bigger than 4, return -1
+        if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.6 *  (treeParams['col_std_dev'])):
+            root.stat = 'colStdDev>1.6tree'
+            return -1
+
+        # if treeHeight < 4:
+            # if field_height >= 4:# and not isinstance(root.this_piece, Piece.IPiece):
+                # self.stats['height>=4'] += 1
+                # return -1
+        # else:
+        if self.params['height'] > treeParams['height'] + 3:
+            root.stat = 'height>tree+3'
+            return -1
+
+        if self.params['line_fill'] > (1.1 * treeParams['line_fill']) and self.params['holes'] == 1:
+            root.stat = 'goodfill_noholes'
+            return +1
+
+        root.stat = 'continue'
+
+        return 0
 
     def has_full_line(self, field):
         for row in field:
@@ -153,6 +216,24 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return num_blocks / (10.0 * height)
 
+
+class PhantomNode(object):
+
+    def __init__(self):
+        self.visits = 1
+        self.reward = 0
+
+
+class MonteCarloStrategy(AbstractStrategy):
+    def __init__(self, game):
+        AbstractStrategy.__init__(self, game)
+        self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
+        self.C = 2 ** (0.5)
+        # self.C = 1.0
+        self.score = lambda x, totalVisits: (
+                (float(x.reward) / x.visits) +
+                self.C * (log(totalVisits) / float(x.visits))**(0.5))
+
     def generateMCTree(self):
         currentState = self._game.me.field
         root = Node(currentState, None,
@@ -175,79 +256,11 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return best
 
-    def evaluate(self, root, treeHeight, treeColStdDev, treeLineFill, treeColHeights):
-        """Returns utility of a state.
-
-        +1 if a full line is formed
-        -1 if height goes over maxHeight
-        0 if not a sink"""
-        field = root.state.field
-
-        field_height = self.get_height(field)
-
-        holes = self.newHolesRBad(field)
-
-        if self.has_full_line(field):
-            root.stat = 'full_line'
-            return +1
-
-        # sys.stderr.write('holes ' + str(holes) + '\n')
-
-        # if holes == 1 and field_height != 0: #and (field_height <= treeHeight+1 or field_height <= 4):
-            # #print field
-            # return +1
-
-        # if treeHeight < 4 and self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.4:
-            # # print field
-            # # print self.get_line_fillness(field, field_height)
-            # self.stats['line>0.8 holes>0.8'] += 1
-            # return +1
-
-        if holes < 0.5:
-            root.stat = 'holes<0.5'
-            return -1
-
-        # if self.get_line_fillness(field, field_height) < (0.9 * treeLineFill) and holes < 0.37:
-            # root.stat = 'line<0.8 holes not 1'
-            # return -1
-
-        fieldColHeights = self.get_col_heights(field)
-        heightDiffs = [abs(fieldColHeights[i] - treeColHeights[i]) for i in range(len(fieldColHeights))]
-
-        # if any(map(lambda x: x > 4, heightDiffs)):
-            # sys.stderr.write('majorHeightDiff' + str(map(lambda x: x > 4, heightDiffs)) + '\n')
-            # root.stat = 'majorHeightDiff'
-            # return -1
-
-        # TODO find drastic differences in any col's height and if bigger than 4, return -1
-        colStdDev = self.get_col_height_std_dev(field)
-
-        if treeHeight > 0 and colStdDev > (1.6 *  (treeColStdDev)):
-            root.stat = 'colStdDev>1.6tree'
-            return -1
-
-        # if treeHeight < 4:
-            # if field_height >= 4:# and not isinstance(root.this_piece, Piece.IPiece):
-                # self.stats['height>=4'] += 1
-                # return -1
-        # else:
-        if field_height > treeHeight + 3:# and not isinstance(root.this_piece, Piece.IPiece):
-            root.stat = 'height>tree+3'
-            return -1
-
-        if self.get_line_fillness(field, field_height) > (1.1 * treeLineFill) and holes == 1:
-            root.stat = 'goodfill_noholes'
-            return +1
-
-        root.stat = 'continue'
-
-        return 0
-
-    def searchMCBranch(self, root, treeHeight, treeColStdDev, treeLineFill, treeColHeights):
+    def searchMCBranch(self, root, treeParams):
         root.visits += 1
 
         if root.util is None:
-            root.util = self.evaluate(root, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
+            root.util = root.evaluate(root, treeParams)
         utility = root.util
         self.stats[root.stat] += 1
 
@@ -261,7 +274,7 @@ class MonteCarloStrategy(AbstractStrategy):
         if child is None:
             utility = -1
         else:
-            utility = self.searchMCBranch(child, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
+            utility = self.searchMCBranch(child, treeParams)
 
         if utility == 1:
             root.reward += 1
@@ -275,16 +288,12 @@ class MonteCarloStrategy(AbstractStrategy):
         timeLimit = datetime.timedelta(milliseconds=int(timeLimit))
         begin = datetime.datetime.utcnow()
 
-        treeHeight = self.get_height(tree.state.field)
-        # treeColStdDev = self.get_mean(self.get_col_heights(tree.state.field))
-        treeColStdDev = self.get_col_height_std_dev(tree.state.field)
-        treeLineFill = self.get_line_fillness(tree.state.field, treeHeight)
-        treeColHeights = self.get_col_heights(tree.state.field)
+        tree.calcParams()
 
         self.stats = Counter()
 
         while datetime.datetime.utcnow() - begin < timeLimit:
-            self.searchMCBranch(tree, treeHeight, treeColStdDev, treeLineFill, treeColHeights)
+            self.searchMCBranch(tree, tree.params)
             # print str(datetime.datetime.utcnow() - begin)
             # print [(x.visits, x.reward) for x in tree.children]
 
@@ -301,11 +310,11 @@ class MonteCarloStrategy(AbstractStrategy):
         # print str(goal.state.field)
         sys.stderr.write(str(tree.visits) + 'vs ' + str(tree.reward) + 'rd' '\n')
         sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
-        sys.stderr.write('holes ' + str(self.newHolesRBad(goal.state.field)) + '\n')
-        sys.stderr.write('initialholes ' + str(self.newHolesRBad(tree.state.field)) + '\n')
-        treeColStdDev = self.get_col_height_std_dev(tree.state.field)
+        sys.stderr.write('holes ' + str(goal.params['holes']) + '\n')
+        sys.stderr.write('initialholes ' + str(tree.params['holes']) + '\n')
+        treeColStdDev = tree.params['col_std_dev']
         sys.stderr.write('treehstddev' + str(treeColStdDev) + '\n')
-        sys.stderr.write('colhstddev' + str(self.get_col_height_std_dev(goal.state.field)) + '\n')
+        sys.stderr.write('colhstddev' + str(goal.params['col_std_dev']) + '\n')
 
         sys.stderr.write('STATS: ' + str(self.stats) + '\n')
 
