@@ -1,11 +1,10 @@
+import datetime as dt
+
+from sys import stderr
+from math import log, exp
+from operator import add
 from random import randint, choice
 from AbstractStrategy import AbstractStrategy
-from math import log
-import math
-from operator import add
-import copy
-import sys
-import datetime
 from Bot.Game import Piece
 from Bot.Game.Field import Field
 from collections import Counter
@@ -66,7 +65,7 @@ class Node(object):
             'height': height,
             'col_heights': col_heights,
             'col_std_dev': self.get_std_dev(col_heights),
-            'line_fill': self.get_line_fillness(num_blocks, height),
+            'line_fillness': self.get_line_fillness(num_blocks, height),
             'holes': self.newHolesRBad(self.state.field)
         }
 
@@ -126,7 +125,7 @@ class Node(object):
             root.stat = 'height>tree+3'
             return -1
 
-        if self.params['line_fill'] > (1.1 * treeParams['line_fill']) and self.params['holes'] == 1:
+        if self.params['line_fillness'] > (1.1 * treeParams['line_fillness']) and self.params['holes'] == 1:
             root.stat = 'goodfill_noholes'
             return +1
 
@@ -159,7 +158,7 @@ class Node(object):
                         holes += 1
                 else:
                     empty = True
-        return math.e ** (-1 * holes)
+        return exp(-1 * holes)
 
     def get_line_fillness(self, num_blocks, height):
         if height == 0:
@@ -235,16 +234,16 @@ class MonteCarloStrategy(AbstractStrategy):
         return best
 
     def searchMCTree(self, tree, timeLimit):
-        timeLimit = datetime.timedelta(milliseconds=int(timeLimit))
-        begin = datetime.datetime.utcnow()
+        timeLimit = dt.timedelta(milliseconds=int(timeLimit))
+        begin = dt.datetime.utcnow()
 
         tree.calcParams()
 
         self.stats = Counter()
 
-        while datetime.datetime.utcnow() - begin < timeLimit:
+        while dt.datetime.utcnow() - begin < timeLimit:
             self.searchMCBranch(tree, tree.params)
-            # print str(datetime.datetime.utcnow() - begin)
+            # print str(dt.datetime.utcnow() - begin)
             # print [(x.visits, x.reward) for x in tree.children]
 
         # return self.pickBestChild(tree)
@@ -258,15 +257,15 @@ class MonteCarloStrategy(AbstractStrategy):
         goal = self.searchMCTree(tree, self._game.timePerMove)
 
         # print str(goal.state.field)
-        sys.stderr.write(str(tree.visits) + 'vs ' + str(tree.reward) + 'rd' '\n')
-        sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
-        sys.stderr.write('holes ' + str(goal.params['holes']) + '\n')
-        sys.stderr.write('initialholes ' + str(tree.params['holes']) + '\n')
+        stderr.write(str(tree.visits) + 'vs ' + str(tree.reward) + 'rd' '\n')
+        stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
+        stderr.write('holes ' + str(goal.params['holes']) + '\n')
+        stderr.write('initialholes ' + str(tree.params['holes']) + '\n')
         treeColStdDev = tree.params['col_heights']
-        sys.stderr.write('tree_col_heights' + str(treeColStdDev) + '\n')
-        sys.stderr.write('col_heights' + str(goal.params['col_heights']) + '\n')
+        stderr.write('tree_col_heights' + str(treeColStdDev) + '\n')
+        stderr.write('col_heights' + str(goal.params['col_heights']) + '\n')
 
-        sys.stderr.write('STATS: ' + str(self.stats) + '\n')
+        stderr.write('STATS: ' + str(self.stats) + '\n')
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
