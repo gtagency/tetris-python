@@ -38,11 +38,25 @@ class Node(object):
                                           for position in range(-3, len(self.state.field[0]) - 1)])
 
     def calcParams(self):
-        # heigh, colStdDev, lineFill, colHeights
+        """One-pass param calculation."""
+        field = self.state.field
+
+        num_full_lines = 0
+
+        for i in range(len(field)):
+            num_blocks = 0
+
+            for j in range(len(field[0])):
+                if field[i][j] != 0 and field[i][j] != 3:
+                    num_blocks += 1
+
+            if num_blocks == len(field[0]):
+                num_full_lines += 1
+
         height = self.get_height(self.state.field)
 
         self.params = {
-            'has_full_line': self.has_full_line(self.state.field),
+            'num_full_lines': num_full_lines,
             'height': self.get_height(self.state.field),
             'col_std_dev': self.get_col_height_std_dev(self.state.field),
             'line_fill': self.get_line_fillness(self.state.field, height),
@@ -87,7 +101,7 @@ class Node(object):
         field = root.state.field
 
 
-        if self.params['has_full_line']:
+        if self.params['num_full_lines'] > 0:
             root.stat = 'full_line'
             return +1
 
@@ -141,12 +155,6 @@ class Node(object):
         root.stat = 'continue'
 
         return 0
-
-    def has_full_line(self, field):
-        for row in field:
-            if all(map(lambda x: x != 0 and x != 3, row)):
-                return True
-        return False
 
     def get_std_dev(self, a_list):
         mean = self.get_mean(a_list)
