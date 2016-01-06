@@ -245,8 +245,6 @@ class MonteCarloStrategy(AbstractStrategy):
 
         while dt.datetime.utcnow() - begin < timeLimit:
             self.searchMCBranch(tree, tree.params)
-            # print str(dt.datetime.utcnow() - begin)
-            # print [(x.visits, x.reward) for x in tree.children]
 
         # return self.pickBestChild(tree)
         return self.pick_highest_reward(tree)
@@ -258,6 +256,7 @@ class MonteCarloStrategy(AbstractStrategy):
         # Pick a goal.
         goal = self.searchMCTree(tree, self._game.timePerMove)
 
+        # Print statistics.
         self.print_stats(tree, goal)
 
         # Find actions to goal.
@@ -269,7 +268,7 @@ class MonteCarloStrategy(AbstractStrategy):
         stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
 
         for param in goal.params:
-            stderr.write(param + str(goal.params[param]) + '\n')
+            stderr.write(param + ' ' + str(goal.params[param]) + '\n')
 
         stderr.write('STATS: ' + str(self.stats) + '\n')
 
