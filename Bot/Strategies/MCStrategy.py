@@ -106,50 +106,22 @@ class Node(object):
 
         field = root.state.field
 
-
         if self.params['num_full_lines'] > 0:
             root.stat = 'full_line'
             return +1
-
-        # sys.stderr.write('holes ' + str(holes) + '\n')
-
-        # if holes == 1 and field_height != 0: #and (field_height <= treeHeight+1 or field_height <= 4):
-            # #print field
-            # return +1
-
-        # if treeHeight < 4 and self.get_line_fillness(field, field_height) >= 0.8 and holes >= 0.4:
-            # # print field
-            # # print self.get_line_fillness(field, field_height)
-            # self.stats['line>0.8 holes>0.8'] += 1
-            # return +1
 
         if self.params['holes'] < 0.5:
             root.stat = 'holes<0.5'
             return -1
 
-        # if self.get_line_fillness(field, field_height) < (0.9 * treeLineFill) and holes < 0.37:
-            # root.stat = 'line<0.8 holes not 1'
-            # return -1
-
         fieldColHeights = self.params['col_heights']
         treeColHeights = treeParams['col_heights']
         heightDiffs = [abs(fieldColHeights[i] - treeColHeights[i]) for i in range(len(fieldColHeights))]
 
-        # if any(map(lambda x: x > 4, heightDiffs)):
-            # sys.stderr.write('majorHeightDiff' + str(map(lambda x: x > 4, heightDiffs)) + '\n')
-            # root.stat = 'majorHeightDiff'
-            # return -1
-
-        # TODO find drastic differences in any col's height and if bigger than 4, return -1
         if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.6 *  (treeParams['col_std_dev'])):
             root.stat = 'colStdDev>1.6tree'
             return -1
 
-        # if treeHeight < 4:
-            # if field_height >= 4:# and not isinstance(root.this_piece, Piece.IPiece):
-                # self.stats['height>=4'] += 1
-                # return -1
-        # else:
         if self.params['height'] > treeParams['height'] + 3:
             root.stat = 'height>tree+3'
             return -1
@@ -169,20 +141,6 @@ class Node(object):
 
     def get_mean(self, a_list):
         return reduce(lambda x, y: x + y, a_list) / float(len(a_list))
-
-    def get_column_distribution(self, field):
-        num_block_in_col = [0] * len(field)
-        for col in range(len(field)):
-            for row in range(len(field[col])):
-                if field[col][row] > 1:
-                    num_block_in_col[col] += 1
-        return self.get_std_dev(num_block_in_col)
-
-    def get_col_height_std_dev(self, field):
-        col_height = self.get_col_heights(field)
-        return self.get_std_dev(col_height)
-        # deviations = map(lambda x: (x - treeColStdDev)**2, col_height)
-        # return (self.get_mean(deviations)) ** 0.5
 
     def newHolesRBad(self, field):
         #only counts holes under the newly placed block
