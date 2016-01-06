@@ -64,9 +64,9 @@ class Node(object):
         self.params = {
             'num_full_lines': num_full_lines,
             'height': height,
-            'line_fill': self.get_line_fillness(self.state.field, height),
             'col_heights': col_heights,
             'col_std_dev': self.get_std_dev(col_heights),
+            'line_fill': self.get_line_fillness(num_blocks, height),
             'holes': self.newHolesRBad(self.state.field)
         }
 
@@ -203,18 +203,9 @@ class Node(object):
                     empty = True
         return math.e ** (-1 * holes)
 
-    def get_line_fillness(self, field, height=None):
-        if height is None:
-            sys.stderr.write('OH SHIT WTF.')
-            height = self.get_height(field)
-
+    def get_line_fillness(self, num_blocks, height):
         if height == 0:
             return 0
-
-        num_blocks = 0
-        for row in field:
-            num_blocks += len(filter(lambda x: x > 1, row))
-
         return num_blocks / (10.0 * height)
 
 
