@@ -71,8 +71,15 @@ class Field:
         else:
             return None
 
-    def isDropPositionValid(self, rotation, position):
-        pieceValid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] <= 1 for coords in rotation)
-        # dropPosValid = lambda piece, position: any( coords[1]+position[1] + 1>=self.height or self.field[coords[1]+position[1]+1][coords[0]+position[0]] > 1 for coords in rotation)
+    def onlyIsAtLeftColumn(self, piece, position):
+        num_zeros = 0
+        for coords in piece:
+            if coords[0] + position[0] == 0:
+                num_zeros += 1
+        return num_zeros == 4 or num_zeros == 0
 
-        return pieceValid(rotation, position) # and dropPosValid(rotation, position)
+    def pieceValid(self, piece, position):
+        return all(0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] <= 1 for coords in piece)
+
+    def isDropPositionValid(self, rotation, position):
+        return self.pieceValid(rotation, position) and self.onlyIsAtLeftColumn(rotation, position)
