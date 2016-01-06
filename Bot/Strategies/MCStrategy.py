@@ -43,24 +43,30 @@ class Node(object):
         num_full_lines = 0
         height = 0
         col_heights = [0] * len(field[0])
+        num_blocks = 0
 
         for i in range(len(field)):
-            num_blocks = 0
+            num_blocks_line = 0
+            num_unbreakable_blocks_line = 0
 
             for j in range(len(field[0])):
-                if field[i][j] != 0:
-                    if field[i][j] != 3:
-                        num_blocks += 1
+                if field[i][j] > 1:
+                    num_blocks_line += 1
+                    if field[i][j] == 3:
+                        num_unbreakable_blocks_line += 1
 
                 if col_heights[j] == 0 and field[i][j] > 1:
                     col_heights[j] = len(field) - i
 
-            if num_blocks == len(field[0]):
+            if num_blocks_line == len(field[0]) and num_unbreakable_blocks_line != len(field[0]):
                 num_full_lines += 1
+
+            num_blocks += num_blocks_line
 
         height = max(col_heights)
 
         self.params = {
+            'num_blocks': num_blocks,
             'num_full_lines': num_full_lines,
             'height': height,
             'col_heights': col_heights,
@@ -256,19 +262,20 @@ class MonteCarloStrategy(AbstractStrategy):
         # Pick a goal.
         goal = self.searchMCTree(tree, self._game.timePerMove)
 
-        # print str(goal.state.field)
-        stderr.write(str(tree.visits) + 'vs ' + str(tree.reward) + 'rd' '\n')
-        stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
-        stderr.write('holes ' + str(goal.params['holes']) + '\n')
-        stderr.write('initialholes ' + str(tree.params['holes']) + '\n')
-        treeColStdDev = tree.params['col_heights']
-        stderr.write('tree_col_heights' + str(treeColStdDev) + '\n')
-        stderr.write('col_heights' + str(goal.params['col_heights']) + '\n')
-
-        stderr.write('STATS: ' + str(self.stats) + '\n')
+        self.print_stats(tree, goal)
 
         # Find actions to goal.
         return self.get_actions_to_goal(goal)
+
+    def print_stats(self, tree, goal):
+         # print str(goal.state.field)
+        stderr.write(str(tree.visits) + 'vs ' + str(tree.reward) + 'rd' '\n')
+        stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
+
+        for param in goal.params:
+            stderr.write(param + str(goal.params[param]) + '\n')
+
+        stderr.write('STATS: ' + str(self.stats) + '\n')
 
     def get_actions_to_goal(self, goal):
         rotation, position = goal.rot_and_pos
