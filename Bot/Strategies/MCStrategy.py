@@ -126,8 +126,8 @@ class Node(object):
             root.stat = 'full_line'
             return +1
 
-        if self.params['holes'] < 0.5:
-            root.stat = 'holes<0.5'
+        if self.params['holes'] < 0.3:
+            root.stat = 'holes<0.3'
             return -1
 
         fieldColHeights = self.params['col_heights']
