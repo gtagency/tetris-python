@@ -43,27 +43,30 @@ class Node(object):
 
         num_full_lines = 0
         height = 0
+        col_heights = [0] * len(field[0])
 
         for i in range(len(field)):
             num_blocks = 0
 
             for j in range(len(field[0])):
-                if height == 0 and field[i][j] > 1:
-                    height = len(field) - i
-
                 if field[i][j] != 0:
                     if field[i][j] != 3:
                         num_blocks += 1
 
+                if col_heights[j] == 0 and field[i][j] > 1:
+                    col_heights[j] = len(field) - i
+
             if num_blocks == len(field[0]):
                 num_full_lines += 1
+
+        height = max(col_heights)
 
         self.params = {
             'num_full_lines': num_full_lines,
             'height': height,
-            'col_std_dev': self.get_col_height_std_dev(self.state.field),
             'line_fill': self.get_line_fillness(self.state.field, height),
-            'col_heights': self.get_col_heights(self.state.field),
+            'col_heights': col_heights,
+            'col_std_dev': self.get_std_dev(col_heights),
             'holes': self.newHolesRBad(self.state.field)
         }
 
@@ -174,14 +177,6 @@ class Node(object):
                 if field[col][row] > 1:
                     num_block_in_col[col] += 1
         return self.get_std_dev(num_block_in_col)
-
-    def get_col_heights(self, field):
-        col_height = [0] * len(field)
-        for col in range(len(field)):
-            for row in range(len(field[col])):
-                if col_height[col] == 0 and field[col][row] > 1:
-                    col_height[col] = len(field) - col
-        return col_height
 
     def get_col_height_std_dev(self, field):
         col_height = self.get_col_heights(field)
@@ -318,9 +313,9 @@ class MonteCarloStrategy(AbstractStrategy):
         sys.stderr.write(str([(x.visits, x.reward) for x in tree.children]) + '\n')
         sys.stderr.write('holes ' + str(goal.params['holes']) + '\n')
         sys.stderr.write('initialholes ' + str(tree.params['holes']) + '\n')
-        treeColStdDev = tree.params['col_std_dev']
-        sys.stderr.write('treehstddev' + str(treeColStdDev) + '\n')
-        sys.stderr.write('colhstddev' + str(goal.params['col_std_dev']) + '\n')
+        treeColStdDev = tree.params['col_heights']
+        sys.stderr.write('tree_col_heights' + str(treeColStdDev) + '\n')
+        sys.stderr.write('col_heights' + str(goal.params['col_heights']) + '\n')
 
         sys.stderr.write('STATS: ' + str(self.stats) + '\n')
 
