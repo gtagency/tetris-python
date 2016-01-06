@@ -232,8 +232,19 @@ class MonteCarloStrategy(AbstractStrategy):
         return utility
 
     def pick_highest_reward(self, root):
-        _, best = max((x.reward, x) for x in root.children)
-        return best
+        best_children = [child for child in root.children
+                         if child.reward == max(x.reward for x in root.children)]
+        # Break ties.
+        best_children = [child for child in best_children
+                         if child.params['holes'] == max(x.params['holes'] for x in best_children)]
+
+        best_children = [child for child in best_children
+                         if child.params['num_full_lines'] == max(x.params['num_full_lines'] for x in best_children)]
+
+        best_children = [child for child in best_children
+                         if child.params['line_fillness'] == max(x.params['line_fillness'] for x in best_children)]
+
+        return choice(best_children)
 
     def searchMCTree(self, tree, timeLimit):
         timeLimit = dt.timedelta(milliseconds=int(timeLimit))
