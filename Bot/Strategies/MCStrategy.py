@@ -42,22 +42,25 @@ class Node(object):
         field = self.state.field
 
         num_full_lines = 0
+        height = 0
 
         for i in range(len(field)):
             num_blocks = 0
 
             for j in range(len(field[0])):
-                if field[i][j] != 0 and field[i][j] != 3:
-                    num_blocks += 1
+                if height == 0 and field[i][j] > 1:
+                    height = len(field) - i
+
+                if field[i][j] != 0:
+                    if field[i][j] != 3:
+                        num_blocks += 1
 
             if num_blocks == len(field[0]):
                 num_full_lines += 1
 
-        height = self.get_height(self.state.field)
-
         self.params = {
             'num_full_lines': num_full_lines,
-            'height': self.get_height(self.state.field),
+            'height': height,
             'col_std_dev': self.get_col_height_std_dev(self.state.field),
             'line_fill': self.get_line_fillness(self.state.field, height),
             'col_heights': self.get_col_heights(self.state.field),
@@ -205,14 +208,9 @@ class Node(object):
                     empty = True
         return math.e ** (-1 * holes)
 
-    def get_height(self, field):
-        for i, row in enumerate(field):
-            if any([x > 1 for x in row]):
-                return (len(field) - i)
-        return 0
-
     def get_line_fillness(self, field, height=None):
         if height is None:
+            sys.stderr.write('OH SHIT WTF.')
             height = self.get_height(field)
 
         if height == 0:
