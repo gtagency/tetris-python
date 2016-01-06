@@ -44,18 +44,29 @@ class Node(object):
         height = 0
         col_heights = [0] * len(field[0])
         num_blocks = 0
+        grow_hole = [False] * len(field[0])
+        holes_per_col = [0] * len(field[0])
 
         for i in range(len(field)):
             num_blocks_line = 0
             num_unbreakable_blocks_line = 0
 
             for j in range(len(field[0])):
-                if field[i][j] > 1:
+                block = field[i][j]
+
+                if block > 1:
                     num_blocks_line += 1
-                    if field[i][j] == 3:
+                    if block == 3:
                         num_unbreakable_blocks_line += 1
 
-                if col_heights[j] == 0 and field[i][j] > 1:
+                if block == 4:
+                    grow_hole[j] = True
+                elif block == 0 and grow_hole[j]:
+                    holes_per_col[j] += 1
+                else:
+                    grow_hole[j] = False
+
+                if col_heights[j] == 0 and block > 1:
                     col_heights[j] = len(field) - i
 
             if num_blocks_line == len(field[0]) and num_unbreakable_blocks_line != len(field[0]):
@@ -72,7 +83,7 @@ class Node(object):
             'col_heights': col_heights,
             'col_std_dev': self.get_std_dev(col_heights),
             'line_fillness': self.get_line_fillness(num_blocks, height),
-            'holes': self.newHolesRBad(self.state.field)
+            'holes': self.score_holes(holes_per_col)
         }
 
     def hasNextChild(self):
@@ -147,24 +158,9 @@ class Node(object):
     def get_mean(self, a_list):
         return reduce(lambda x, y: x + y, a_list) / float(len(a_list))
 
-    def newHolesRBad(self, field):
-        #only counts holes under the newly placed block
-        height = len(field)
-        width = len(field[0])
-        holes = 0
-        for i in range(width):
-            empty = True
-            for j in range(height):
-                k = field[j][i]
-                if k == 4:
-                    if empty:
-                        empty = False
-                elif k == 0:
-                    if not empty:
-                        holes += 1
-                else:
-                    empty = True
-        return exp(-1 * holes)
+    def score_holes(self, holes_per_col):
+        num_holes = sum(holes_per_col)
+        return exp(-1 * num_holes)
 
     def get_line_fillness(self, num_blocks, height):
         if height == 0:
