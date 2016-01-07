@@ -59,7 +59,7 @@ class Node(object):
                     if block == 3:
                         num_unbreakable_blocks_line += 1
 
-                if block == 4 and not all([x-1 for x in field[i]]):
+                if block == 4 and not all([0 if x==1 else x for x in field[i]]):
                     grow_hole[j] = True
                 elif block == 0 and grow_hole[j]:
                     holes_per_col[j] += 1
