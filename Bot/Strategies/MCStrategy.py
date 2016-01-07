@@ -59,8 +59,9 @@ class Node(object):
                     if block == 3:
                         num_unbreakable_blocks_line += 1
 
-                if block == 4 and not all([0 if x==1 else x for x in field[i]]):
-                    grow_hole[j] = True
+                if block == 4:
+                    if not all([0 if x==1 else x for x in field[i]]): #DO NOT CONDENSE INTO 1 IF STATEMENT!!! (breaks else logic)
+                        grow_hole[j] = True
                 elif block == 0 and grow_hole[j]:
                     holes_per_col[j] += 1
                 else:
@@ -297,6 +298,11 @@ class MonteCarloStrategy(AbstractStrategy):
         rotation, position = goal.rot_and_pos
         actions = []
         #begin = dt.datetime.utcnow()
+
+        while rotation != self._game.piece.positions():
+            actions.append('turnright')
+            self._game.piece.turnRight()
+
         currentPos = list(self._game.piecePosition)
         while currentPos[0] != position:
             if currentPos[0] > position:
@@ -305,10 +311,6 @@ class MonteCarloStrategy(AbstractStrategy):
             else:
                 actions.append('right')
                 currentPos[0] += 1
-
-        while rotation != self._game.piece.positions():
-            actions.append('turnright')
-            self._game.piece.turnRight()
 
         actions.append('drop')
         #print dt.datetime.utcnow() - begin
