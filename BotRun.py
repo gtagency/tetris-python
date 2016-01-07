@@ -29,6 +29,11 @@ class Bot:
 
     def interpret(self, line):
         if line.startswith('action'):
+            try:
+                timeLeft = int(line.split()[2]) #updates timebank
+                self.game.timebank = timeLeft
+            except:
+                pass
             return self._planner.makeMove()
         else:
             self._parser.parse(line)

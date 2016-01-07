@@ -8,7 +8,7 @@ from AbstractStrategy import AbstractStrategy
 from Bot.Game import Piece
 from Bot.Game.Field import Field
 from collections import Counter
-
+import copy
 
 class Node(object):
 
@@ -59,7 +59,7 @@ class Node(object):
                     if block == 3:
                         num_unbreakable_blocks_line += 1
 
-                if block == 4:
+                if block == 4 and not all([x-1 for x in field[i]]):
                     grow_hole[j] = True
                 elif block == 0 and grow_hole[j]:
                     holes_per_col[j] += 1
@@ -248,6 +248,8 @@ class MonteCarloStrategy(AbstractStrategy):
 
     def searchMCTree(self, tree, timeLimit):
         timeLimit = dt.timedelta(milliseconds=int(timeLimit))
+        if self._game.timebank < 1000 and timeLimit > 100: #prevents us from using up all of our time
+            timeLimit = timeLimit - 25
         begin = dt.datetime.utcnow()
 
         tree.calcParams()
@@ -271,7 +273,15 @@ class MonteCarloStrategy(AbstractStrategy):
         self.print_stats(tree, goal)
 
         # Find actions to goal.
-        return self.get_actions_to_goal(goal)
+        if goal.params["height"] >= len(goal.state.field) - 4: #if col heights too high, get_actions_to_goal is unreliable
+            actions = self.reverseDFS(goal)
+            while actions == None:
+                tree.children.remove(goal)
+                goal = self.pick_highest_reward(tree)
+                actions = self.reverseDFS(goal)
+            return actions
+        else:
+            return self.get_actions_to_goal(goal)
 
     def print_stats(self, tree, goal):
          # print str(goal.state.field)
@@ -286,7 +296,7 @@ class MonteCarloStrategy(AbstractStrategy):
     def get_actions_to_goal(self, goal):
         rotation, position = goal.rot_and_pos
         actions = []
-
+        #begin = dt.datetime.utcnow()
         currentPos = list(self._game.piecePosition)
         while currentPos[0] != position:
             if currentPos[0] > position:
@@ -301,5 +311,59 @@ class MonteCarloStrategy(AbstractStrategy):
             self._game.piece.turnRight()
 
         actions.append('drop')
-
+        #print dt.datetime.utcnow() - begin
         return actions
+
+    def reverseDFS(self, goal):
+        #begin = dt.datetime.utcnow()
+        piece = self._game.piece
+        piecePos = self._game.piecePosition
+        closed = set()
+        currentField = self._game.me.field
+
+        openList = [(piecePos, piece, [])]
+        # print goal.field
+
+
+        while len(openList) != 0:
+            piecePos, piece, intstructions = openList.pop()
+
+            test = goal.state.field == currentField.fitPiece(piece.positions(), piecePos)
+            if type(test) is not bool and test.all():
+                #(type(test) is bool and test == True) or
+                # print currentField.fitPiece(piece.positions(), piecePos)
+                # print piecePos
+                # print piece.positions()
+                # print piece._rotateIndex
+                #print dt.datetime.utcnow() - begin
+                return intstructions
+
+            #rotations
+            copyPiece = copy.deepcopy(piece)
+            if copyPiece.turnLeft() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
+                newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
+                newState[2].append("turnleft")
+                if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
+                    openList.append(newState)
+                    closed.add((tuple(newState[0]), newState[1]._rotateIndex))
+            copyPiece = copy.deepcopy(piece)
+            if copyPiece.turnRight() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), piecePos)):
+                newState = (copy.deepcopy(piecePos), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
+                newState[2].append("turnright")
+                if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
+                    openList.append(newState)
+                    closed.add((tuple(newState[0]), newState[1]._rotateIndex))
+
+
+            #normal moves
+            for move in [[1,0],[-1,0],[0,1]]:
+                offset = currentField._offsetPiece(piece.positions(), map(add, piecePos, move))
+                if currentField._checkIfPieceFits(offset):
+                    newState = (map(add, piecePos, move), copy.deepcopy(piece), copy.deepcopy(intstructions))
+                    newState[2].append("left" if move == [-1,0] else ("right" if move == [1,0] else "down"))
+                    if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
+                        openList.append(newState)
+                        closed.add((tuple(newState[0]), newState[1]._rotateIndex))
+
+        #print dt.datetime.utcnow() - begin
+        return None
