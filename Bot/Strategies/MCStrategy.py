@@ -120,8 +120,8 @@ class Node(object):
             self.stat = 'full_line'
             return +1
 
-        if self.params['holes'] < 0.5:
-            self.stat = 'holes<0.5'
+        if self.params['holes'] < 0.3: # this means 2 new holes necessary for True
+            root.stat = 'holes<0.3'
             return -1
 
         if relaxation > 6:
@@ -303,10 +303,6 @@ class MonteCarloStrategy(AbstractStrategy):
         rotation, position = goal.rot_and_pos
         actions = []
 
-        while rotation != self._game.piece.positions():
-            actions.append('turnright')
-            self._game.piece.turnRight()
-
         currentPos = list(self._game.piecePosition)
         while currentPos[0] != position:
             if currentPos[0] > position:
@@ -315,6 +311,10 @@ class MonteCarloStrategy(AbstractStrategy):
             else:
                 actions.append('right')
                 currentPos[0] += 1
+
+        while rotation != self._game.piece.positions():
+            actions.append('turnright')
+            self._game.piece.turnRight()
 
         actions.append('drop')
 
