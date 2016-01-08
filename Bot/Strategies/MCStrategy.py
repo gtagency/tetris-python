@@ -116,27 +116,34 @@ class Node(object):
             self.stat = 'multi_full_line'
             return +1
 
+        if relaxation <= 2 and self.params['holes'] != 1:
+            self.stat = 'hole_found'
+            return -1
+
         if relaxation > 2 and self.params['num_full_lines'] > 0:
             self.stat = 'full_line'
             return +1
 
-        if self.params['holes'] < 0.3: # this means 2 new holes necessary for True
-            root.stat = 'holes<0.3'
+        if 2 < relaxation <= 6 and self.params['holes'] < 0.5: # this means 1 new holes necessary for True
+            self.stat = 'holes<0.5'
             return -1
 
-        if relaxation > 6:
-            if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.6 *  (treeParams['col_std_dev'])):
-                self.stat = 'colStdDev>1.6tree'
+        if relaxation > 6 and self.params['holes'] < 0.3: # this means 1 new holes necessary for True
+            self.stat = 'holes<0.3'
+            return -1
+
+        if relaxation > 5:
+            if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.4 *  (treeParams['col_std_dev'])):
+                self.stat = 'colStdDev>1.4tree'
                 return -1
+
+            if self.params['line_fillness'] > (1.5 * treeParams['line_fillness']) and self.params['col_std_dev'] < treeParams['col_std_dev']:
+                self.stat = 'goodfill_noholes'
+                return +1
 
         if self.params['height'] > treeParams['height'] + 3:
             self.stat = 'height>tree+3'
             return -1
-
-        if relaxation > 6:
-            if self.params['line_fillness'] > (1.1 * treeParams['line_fillness']) and self.params['holes'] == 1:
-                self.stat = 'goodfill_noholes'
-                return +1
 
         self.stat = 'continue'
 
