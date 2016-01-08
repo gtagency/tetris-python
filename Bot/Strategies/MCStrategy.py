@@ -303,6 +303,10 @@ class MonteCarloStrategy(AbstractStrategy):
         rotation, position = goal.rot_and_pos
         actions = []
 
+        while rotation != self._game.piece.positions():
+            actions.append('turnright')
+            self._game.piece.turnRight()
+
         currentPos = list(self._game.piecePosition)
         while currentPos[0] != position:
             if currentPos[0] > position:
@@ -311,10 +315,6 @@ class MonteCarloStrategy(AbstractStrategy):
             else:
                 actions.append('right')
                 currentPos[0] += 1
-
-        while rotation != self._game.piece.positions():
-            actions.append('turnright')
-            self._game.piece.turnRight()
 
         actions.append('drop')
 
