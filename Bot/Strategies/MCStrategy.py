@@ -19,7 +19,7 @@ class Node(object):
         self.parent = parent
         self.visits = 1
         self.reward = 0
-        self.util = None
+        self.util = [None] * 10
         self.stat = ''
         self.next_piece = next_piece
         self.this_piece = this_piece
@@ -112,7 +112,38 @@ class Node(object):
         self.children.append(child)
         return child
 
-    def evaluate(self, root, treeParams):
+    def calc_util(self, treeParams, relaxation):
+        if self.params['num_full_lines'] > 1:
+            self.stat = 'multi_full_line'
+            return +1
+
+        if relaxation > 2 and self.params['num_full_lines'] > 0:
+            self.stat = 'full_line'
+            return +1
+
+        if self.params['holes'] < 0.3: # this means 2 new holes necessary for True
+            root.stat = 'holes<0.3'
+            return -1
+
+        if relaxation > 6:
+            if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.6 *  (treeParams['col_std_dev'])):
+                self.stat = 'colStdDev>1.6tree'
+                return -1
+
+        if self.params['height'] > treeParams['height'] + 3:
+            self.stat = 'height>tree+3'
+            return -1
+
+        if relaxation > 6:
+            if self.params['line_fillness'] > (1.1 * treeParams['line_fillness']) and self.params['holes'] == 1:
+                self.stat = 'goodfill_noholes'
+                return +1
+
+        self.stat = 'continue'
+
+        return 0
+
+    def evaluate(self, treeParams, relaxation=0):
         """Returns utility of a state.
 
         +1 if a full line is formed
@@ -121,35 +152,10 @@ class Node(object):
         if self.params is None:
             self.calcParams()
 
-        field = root.state.field
+        if self.util[relaxation] is None:
+            self.util[relaxation] = self.calc_util(treeParams, relaxation)
 
-        if self.params['num_full_lines'] > 0:
-            root.stat = 'full_line'
-            return +1
-
-        if self.params['holes'] < 0.3: # this means 2 new holes necessary for True
-            root.stat = 'holes<0.3'
-            return -1
-
-        fieldColHeights = self.params['col_heights']
-        treeColHeights = treeParams['col_heights']
-        heightDiffs = [abs(fieldColHeights[i] - treeColHeights[i]) for i in range(len(fieldColHeights))]
-
-        if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.6 *  (treeParams['col_std_dev'])):
-            root.stat = 'colStdDev>1.6tree'
-            return -1
-
-        if self.params['height'] > treeParams['height'] + 3:
-            root.stat = 'height>tree+3'
-            return -1
-
-        if self.params['line_fillness'] > (1.1 * treeParams['line_fillness']) and self.params['holes'] == 1:
-            root.stat = 'goodfill_noholes'
-            return +1
-
-        root.stat = 'continue'
-
-        return 0
+        return self.util[relaxation]
 
     def get_std_dev(self, a_list):
         mean = self.get_mean(a_list)
@@ -208,12 +214,12 @@ class MonteCarloStrategy(AbstractStrategy):
 
         return best
 
-    def searchMCBranch(self, root, treeParams):
+    def searchMCBranch(self, root, treeParams, relaxation=0):
         root.visits += 1
 
-        if root.util is None:
-            root.util = root.evaluate(root, treeParams)
-        utility = root.util
+        if root.util[relaxation] is None:
+            root.util[relaxation] = root.evaluate(treeParams, relaxation)
+        utility = root.util[relaxation]
         self.stats[root.stat] += 1
 
         if utility != 0:
@@ -226,7 +232,7 @@ class MonteCarloStrategy(AbstractStrategy):
         if child is None:
             utility = -1
         else:
-            utility = self.searchMCBranch(child, treeParams)
+            utility = self.searchMCBranch(child, treeParams, relaxation)
 
         if utility == 1:
             root.reward += 1
@@ -237,28 +243,38 @@ class MonteCarloStrategy(AbstractStrategy):
                          if child.reward == max(x.reward for x in root.children)]
         # Break ties.
         best_children = [child for child in best_children
-                         if child.params['holes'] == max(x.params['holes'] for x in best_children)]
+                         if child.params['line_fillness'] == max(x.params['line_fillness'] for x in best_children)]
 
         best_children = [child for child in best_children
                          if child.params['num_full_lines'] == max(x.params['num_full_lines'] for x in best_children)]
 
         best_children = [child for child in best_children
-                         if child.params['line_fillness'] == max(x.params['line_fillness'] for x in best_children)]
+                         if child.params['holes'] == max(x.params['holes'] for x in best_children)]
 
         return choice(best_children)
 
     def searchMCTree(self, tree, timeLimit):
+        oneTenth = dt.timedelta(milliseconds=(int(timeLimit) * 0.1))
+        checkpoint = oneTenth
+
         timeLimit = dt.timedelta(milliseconds=int(timeLimit))
         if self._game.timebank < 1000 and timeLimit > 100: #prevents us from using up all of our time
             timeLimit = timeLimit - 25
         begin = dt.datetime.utcnow()
+
+        relaxation = 0
 
         tree.calcParams()
 
         self.stats = Counter()
 
         while dt.datetime.utcnow() - begin < timeLimit:
-            self.searchMCBranch(tree, tree.params)
+            if tree.reward == 0 and dt.datetime.utcnow() - begin > checkpoint:
+                relaxation += 1
+                stderr.write('relaxation level: ' + str(relaxation) + '\n')
+                checkpoint = oneTenth * (relaxation + 1)
+
+            self.searchMCBranch(tree, tree.params, relaxation)
 
         # return self.pickBestChild(tree)
         return self.pick_highest_reward(tree)
