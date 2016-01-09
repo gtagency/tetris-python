@@ -19,7 +19,7 @@ class Node(object):
         self.parent = parent
         self.visits = 1
         self.reward = 0
-        self.util = [None] * 10
+        self.util = [None] * 11
         self.stat = ''
         self.next_piece = next_piece
         self.this_piece = this_piece
