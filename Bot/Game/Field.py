@@ -48,28 +48,30 @@ class Field:
 
         return piece
 
-    def _checkIfPieceFits(self, piecePositions):
+    def _checkIfPieceFits(self, piecePositions, softTop=False):
         for x, y in piecePositions:
-            if 0 <= x < self.width and 0 <= y < self.height:
-                if self.field[y][x] > 1:
-                    return False
+            if 0 <= x < self.width and ((-1 if softTop else 0) <= y < self.height):
+                if y != -1:
+                    if self.field[y][x] > 1:
+                        return False
             else:
                 return False
         return True
 
-    def fitPiece(self, piecePositions, offset=None):
+    def fitPiece(self, piecePositions, offset=None, softTop=False):
         if offset:
             piece = self._offsetPiece(piecePositions, offset)
         else:
             piece = piecePositions
         field = copy.deepcopy(self.field)
-        if self._checkIfPieceFits(piece):
+        if self._checkIfPieceFits(piece, softTop=softTop):
             for x,y in piece:
                 field[y][x] = 4
 
             return field
         else:
             return None
+
 
     def isDropPositionValid(self, rotation, position):
         pieceValid = lambda piece, position: all(0<=coords[0]+position[0]<self.width and self.field[coords[1]+position[1]][coords[0]+position[0]] <= 1 for coords in rotation)

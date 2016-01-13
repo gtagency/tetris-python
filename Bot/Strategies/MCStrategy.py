@@ -9,10 +9,11 @@ from Bot.Game import Piece
 from Bot.Game.Field import Field
 from collections import Counter
 import copy
+from Bot import util
 
 class Node(object):
 
-    def __init__(self, state, parent, rot_and_pos=None, this_piece=None, next_piece=None):
+    def __init__(self, state, parent, rot_and_pos=None, this_piece=None, next_piece=None, instructions=None):
         self.state = state # Field
         self.rot_and_pos = rot_and_pos
         self.children = []  # A list of Nodes
@@ -24,17 +25,27 @@ class Node(object):
         self.next_piece = next_piece
         self.this_piece = this_piece
         self.params = None
+        self.possibleChildren = []
+        self.instructions = instructions
 
         if this_piece is not None:
             pieces = [this_piece]
         else:
             pieces = [Piece.create(pType) for pType in ['L', 'O', 'I', 'J', 'S', 'T', 'Z']]
 
-        self.possibleChildren = []  # A list of tuples of rotations and pos's.
+        #self.initialChildren = []  # A list of tuples of rotations and pos's.
         for piece in pieces:
-            self.possibleChildren.extend([(rotation, position)
-                                          for rotation in piece._rotations
-                                          for position in range(-3, len(self.state.field[0]) - 1)])
+            for rotation in range(0,len(piece._rotations)):
+                for position in range(-3, len(self.state.field[0])):
+                    newPiece = copy.deepcopy(piece)
+                    newPiece._rotateIndex = rotation
+                    self.possibleChildren.append((newPiece, position, None))
+            # self.initialChildren.extend([(copy.deepcopy(piece)rotation, position)
+            #                               for rotation in len(piece._rotations)
+            #                               for position in range(-3, len(self.state.field[0]) - 1)])
+            # print self.initialChildren
+        startValid = lambda (piece, position, complexChild): all(0<=coords[0]+position<10 for coords in piece.positions())
+        self.possibleChildren = filter(startValid, self.possibleChildren)
 
     def calcParams(self):
         """One-pass param calculation."""
@@ -91,24 +102,71 @@ class Node(object):
         return len(self.possibleChildren) != 0
 
     def getNextChild(self):
+        if self.possibleChildren is None:
+            return None
         """Returns a child Node with a randomly picked piece, rotation and position."""
-        rotation, pos = choice(self.possibleChildren)
-        self.possibleChildren.remove((rotation, pos))
+        rotation, pos, complexChild = choice(self.possibleChildren)
+        self.possibleChildren.remove((rotation, pos, complexChild))
+        if type(pos) is int:
+            #need to expand, aka find y val and check for complex children
+            rotation,pos,complexChild = self.generateChildren(rotation, pos)
 
-        while not self.state.isDropPositionValid(rotation, (pos, 0)):
+        while pos == None:
             if self.hasNextChild():
                 return self.getNextChild()
             else:
                 return None
 
-        return self.getChild(rotation, pos)
+        return self.getChild(rotation, pos, complexChild)
 
-    def getChild(self, rotation, pos):
+    def generateChildren(self,piece,x):
+        if self.params is None:
+            self.calcParams()
+
+        newChildren = []
+        piecePos = piece.positions()
+        complexChild = False
+        position = (x, -2)
+
+        newPosition = None
+        while position[1] < self.state.height:
+            position = (position[0], position[1]+1)
+
+            offset = self.state._offsetPiece(piecePos, position)
+            fitPiece = self.state.fitPiece(piecePos, position, softTop=True)
+            if fitPiece != None:
+                newPosition = position
+                continue
+            elif newPosition != None:
+                if complexChild == False:
+                    print "yes!!"
+                    newChildren.append((piecePos,newPosition,None))
+                    newPosition = None
+                else:
+                    instructions = self.aStar(piece, newPosition, piecePos)
+                    print instructions
+                    if instructions != None:
+                        print "yes!!!"
+                        newChildren.append((piecePos,newPosition,instructions))
+            complexChild = True
+
+        if len(newChildren) == 0:
+            return None,None,None
+        elif len(newChildren) == 1:
+            return newChildren[0]
+        else:
+            ret = choice(newChildren)
+            newChildren.remove(ret)
+            for item in newChildren:
+                self.possibleChildren.append(item)
+            return ret
+
+    def getChild(self, rotation, pos, complexInstructions):
         """Returns a child Node with the rotation dropped from pos."""
-        new_field = self.state.projectRotationDown(rotation, (pos, 0))
+        new_field = self.state.fitPiece(rotation, pos)
         new_state = Field()
         new_state.field = new_field
-        child = Node(new_state, self, rot_and_pos=(rotation, pos), this_piece=self.next_piece)
+        child = Node(new_state, self, rot_and_pos=(rotation, pos), this_piece=self.next_piece, instructions=complexInstructions)
         self.children.append(child)
         return child
 
@@ -122,7 +180,7 @@ class Node(object):
             return +1
 
         if self.params['holes'] < 0.3: # this means 2 new holes necessary for True
-            root.stat = 'holes<0.3'
+            self.stat = 'holes<0.3'
             return -1
 
         if relaxation > 6:
@@ -174,6 +232,58 @@ class Node(object):
             return 0
         return num_blocks / (10.0 * height)
 
+    def aStar(self, piece, position, piecePos):
+        # used to see if complex block placement is valid. Instructions are kept
+        # in reverse order to avoid having to call reverseDFS later
+
+        GOAL_POS = (3,-1)
+        currentField = self.state
+        closed = set()
+        openList = util.PriorityQueue()
+        def getPriority(position, piece):
+            dist = util.manhattanDistance(position, GOAL_POS)
+            rotationDist = min(piece._rotateIndex, len(piece._rotations)-piece._rotateIndex)
+            return dist + rotationDist
+        openList.push((position, piece, []), getPriority(position, piece))
+
+
+        while not openList.isEmpty():
+
+            position, piece, intstructions = openList.pop()
+
+            if position == GOAL_POS and piece._rotateIndex == 0:
+                intstructions.reverse()
+                return intstructions
+
+            #rotations
+            copyPiece = copy.deepcopy(piece)
+            if copyPiece.turnLeft() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), position), softTop=True):
+                newState = (copy.deepcopy(position), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
+                newState[2].append("turnright")
+                if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
+                    openList.push(newState, getPriority(newState[0],newState[1]))
+                    closed.add((tuple(newState[0]), newState[1]._rotateIndex))
+            copyPiece = copy.deepcopy(piece)
+            if copyPiece.turnRight() and currentField._checkIfPieceFits(currentField._offsetPiece(copyPiece.positions(), position), softTop=True):
+                newState = (copy.deepcopy(position), copy.deepcopy(copyPiece), copy.deepcopy(intstructions))
+                newState[2].append("turnleft")
+                if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
+                    openList.push(newState, getPriority(newState[0],newState[1]))
+                    closed.add((tuple(newState[0]), newState[1]._rotateIndex))
+
+            #normal moves
+            for move in [[1,0],[-1,0],[0,-1]]:
+                offset = currentField._offsetPiece(piece.positions(), map(add, position, move))
+                if currentField._checkIfPieceFits(offset, softTop=True):
+                    newState = (map(add, position, move), copy.deepcopy(piece), copy.deepcopy(intstructions))
+                    newState[2].append("right" if move == [-1,0] else ("left" if move == [1,0] else "down"))
+                    if (tuple(newState[0]), newState[1]._rotateIndex) not in closed:
+                        openList.push(newState, getPriority(newState[0],newState[1]))
+                        closed.add((tuple(newState[0]), newState[1]._rotateIndex))
+
+        #print dt.datetime.utcnow() - begin
+        return None
+
 
 class PhantomNode(object):
 
@@ -212,6 +322,11 @@ class MonteCarloStrategy(AbstractStrategy):
             if best is None:
                 return self.pickBestChild(root)
 
+        print len(root.children)
+        print score
+        print self.score(PhantomNode(), totalVisits)
+        print root.hasNextChild()
+        print score <= self.score(PhantomNode(), totalVisits)
         return best
 
     def searchMCBranch(self, root, treeParams, relaxation=0):
@@ -277,6 +392,7 @@ class MonteCarloStrategy(AbstractStrategy):
             self.searchMCBranch(tree, tree.params, relaxation)
 
         # return self.pickBestChild(tree)
+        print tree.children
         return self.pick_highest_reward(tree)
 
     def choose(self):
@@ -290,6 +406,8 @@ class MonteCarloStrategy(AbstractStrategy):
         self.print_stats(tree, goal)
 
         # Find actions to goal.
+        if goal.instructions != None:
+            return goal.instructions
         if goal.params["height"] >= len(goal.state.field) - 4: #if col heights too high, get_actions_to_goal is unreliable
             actions = self.reverseDFS(goal)
             while actions == None:
@@ -320,8 +438,8 @@ class MonteCarloStrategy(AbstractStrategy):
             self._game.piece.turnRight()
 
         currentPos = list(self._game.piecePosition)
-        while currentPos[0] != position:
-            if currentPos[0] > position:
+        while currentPos[0] != position[0]:
+            if currentPos[0] > position[0]:
                 actions.append('left')
                 currentPos[0] -= 1
             else:
