@@ -27,27 +27,34 @@ class Node(object):
         self.params = None
         self.possibleChildren = []
         self.instructions = instructions
+        self.pieces = []
 
         if this_piece is not None:
-            pieces = [this_piece]
+            self.pieces = [this_piece]
         else:
-            pieces = [Piece.create(pType) for pType in ['L', 'O', 'I', 'J', 'S', 'T', 'Z']]
-
+            self.pieces = [Piece.create(pType) for pType in ['L', 'O', 'I', 'J', 'S', 'T', 'Z']]
+        # print "Node start"
+        # now = dt.datetime.utcnow()
         #self.initialChildren = []  # A list of tuples of rotations and pos's.
-        for piece in pieces:
-            for rotation in range(0,len(piece._rotations)):
+        for pieceNum in range(0,len(self.pieces)):
+            for rotation in range(0,len(self.pieces[pieceNum]._rotations)):
                 for position in range(-3, len(self.state.field[0])):
-                    newPiece = copy.deepcopy(piece)
-                    newPiece._rotateIndex = rotation
-                    self.possibleChildren.append((newPiece, position, None))
+                    self.possibleChildren.append(((pieceNum,rotation), position, None))
             # self.initialChildren.extend([(copy.deepcopy(piece)rotation, position)
             #                               for rotation in len(piece._rotations)
             #                               for position in range(-3, len(self.state.field[0]) - 1)])
             # print self.initialChildren
-        startValid = lambda (piece, position, complexChild): all(0<=coords[0]+position<10 for coords in piece.positions())
+        startValid = lambda (piece, position, complexChild): all(0<=coords[0]+position<10 for coords in self.pieces[piece[0]]._rotations[piece[1]])
+        # print dt.datetime.utcnow() - now
+        # now = dt.datetime.utcnow()
         self.possibleChildren = filter(startValid, self.possibleChildren)
+        # print "filter"
+        # print dt.datetime.utcnow() - now
+
 
     def calcParams(self):
+        # print "param calc"
+        # now = dt.datetime.utcnow()
         """One-pass param calculation."""
         field = self.state.field
 
@@ -97,6 +104,7 @@ class Node(object):
             'line_fillness': self.get_line_fillness(num_blocks, height),
             'holes': self.score_holes(holes_per_col)
         }
+        # print dt.datetime.utcnow() - now
 
     def hasNextChild(self):
         return len(self.possibleChildren) != 0
@@ -117,14 +125,15 @@ class Node(object):
             else:
                 return None
 
-        return self.getChild(rotation, pos, complexChild)
+        return self.getChild(self.pieces[rotation[0]]._rotations[rotation[1]], pos, complexChild)
 
     def generateChildren(self,piece,x):
         if self.params is None:
             self.calcParams()
-
+        # print "genChildren"
+        # now = dt.datetime.utcnow()
         newChildren = []
-        piecePos = piece.positions()
+        piecePos = self.pieces[piece[0]]._rotations[piece[1]]
         complexChild = False
         position = (x, -2)
 
@@ -139,17 +148,18 @@ class Node(object):
                 continue
             elif newPosition != None:
                 if complexChild == False:
-                    print "yes!!"
-                    newChildren.append((piecePos,newPosition,None))
-                    newPosition = None
+                    # print "yes!!"
+                    if self.state._checkIfPieceFits(offset) != None:
+                        newChildren.append((piece,newPosition,None))
+                        newPosition = None
                 else:
-                    instructions = self.aStar(piece, newPosition, piecePos)
-                    print instructions
+                    instructions = self.aStar(self.pieces[piece[0]], newPosition, piecePos)
+                    # print instructions
                     if instructions != None:
-                        print "yes!!!"
-                        newChildren.append((piecePos,newPosition,instructions))
+                        # print "yes!!!"
+                        newChildren.append((piece,newPosition,instructions))
             complexChild = True
-
+        # print dt.datetime.utcnow() - now
         if len(newChildren) == 0:
             return None,None,None
         elif len(newChildren) == 1:
@@ -235,7 +245,6 @@ class Node(object):
     def aStar(self, piece, position, piecePos):
         # used to see if complex block placement is valid. Instructions are kept
         # in reverse order to avoid having to call reverseDFS later
-
         GOAL_POS = (3,-1)
         currentField = self.state
         closed = set()
@@ -246,12 +255,10 @@ class Node(object):
             return dist + rotationDist
         openList.push((position, piece, []), getPriority(position, piece))
 
-
         while not openList.isEmpty():
-
             position, piece, intstructions = openList.pop()
 
-            if position == GOAL_POS and piece._rotateIndex == 0:
+            if position[0] == GOAL_POS[0] and position[1] == GOAL_POS[1] and piece._rotateIndex == 0:
                 intstructions.reverse()
                 return intstructions
 
@@ -322,11 +329,11 @@ class MonteCarloStrategy(AbstractStrategy):
             if best is None:
                 return self.pickBestChild(root)
 
-        print len(root.children)
-        print score
-        print self.score(PhantomNode(), totalVisits)
-        print root.hasNextChild()
-        print score <= self.score(PhantomNode(), totalVisits)
+        # print len(root.children)
+        # print score
+        # print self.score(PhantomNode(), totalVisits)
+        # print root.hasNextChild()
+        # print score <= self.score(PhantomNode(), totalVisits)
         return best
 
     def searchMCBranch(self, root, treeParams, relaxation=0):
@@ -384,15 +391,18 @@ class MonteCarloStrategy(AbstractStrategy):
         self.stats = Counter()
 
         while dt.datetime.utcnow() - begin < timeLimit:
+            # now = dt.datetime.utcnow()
             if tree.reward == 0 and dt.datetime.utcnow() - begin > checkpoint:
                 relaxation += 1
                 stderr.write('relaxation level: ' + str(relaxation) + '\n')
                 checkpoint = oneTenth * (relaxation + 1)
 
             self.searchMCBranch(tree, tree.params, relaxation)
+            # print "search tree"
+            # print dt.datetime.utcnow() - now
 
         # return self.pickBestChild(tree)
-        print tree.children
+        #print tree.children
         return self.pick_highest_reward(tree)
 
     def choose(self):

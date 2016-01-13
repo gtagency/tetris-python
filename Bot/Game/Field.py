@@ -66,7 +66,8 @@ class Field:
         field = copy.deepcopy(self.field)
         if self._checkIfPieceFits(piece, softTop=softTop):
             for x,y in piece:
-                field[y][x] = 4
+                if y>=0:
+                    field[y][x] = 4
 
             return field
         else:
