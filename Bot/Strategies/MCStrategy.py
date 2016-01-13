@@ -55,7 +55,7 @@ class Node(object):
     def calcParams(self):
         # print "param calc"
         # now = dt.datetime.utcnow()
-        """One-pass param calculation."""
+        """One-pass param calculation.""" #actually it's now 2-pass :)
         field = self.state.field
 
         num_full_lines = 0
@@ -64,6 +64,11 @@ class Node(object):
         num_blocks = 0
         grow_hole = [False] * len(field[0])
         holes_per_col = [0] * len(field[0])
+        filled_holes = 0
+        filled_lines = [False] * len(field)
+        for i in range(len(field)): #seperated so that grow_hole logic works correctly
+            if all([0 if x==1 else x for x in field[i]]):
+                filled_lines[i] = True
 
         for i in range(len(field)):
             num_blocks_line = 0
@@ -78,8 +83,10 @@ class Node(object):
                         num_unbreakable_blocks_line += 1
 
                 if block == 4:
-                    if not all([0 if x==1 else x for x in field[i]]): #DO NOT CONDENSE INTO 1 IF STATEMENT!!! (breaks else logic)
+                    if filled_lines[i] == False: #DO NOT CONDENSE INTO 1 IF STATEMENT!!! (breaks else logic)
                         grow_hole[j] = True
+                    if col_heights[j] != 0:
+                        filled_holes += 1
                 elif block == 0 and grow_hole[j]:
                     holes_per_col[j] += 1
                 else:
@@ -102,7 +109,8 @@ class Node(object):
             'col_heights': col_heights,
             'col_std_dev': self.get_std_dev(col_heights),
             'line_fillness': self.get_line_fillness(num_blocks, height),
-            'holes': self.score_holes(holes_per_col)
+            'holes': self.score_holes(holes_per_col),
+            'filled_holes': filled_holes
         }
         # print dt.datetime.utcnow() - now
 
@@ -147,17 +155,17 @@ class Node(object):
                 newPosition = position
                 continue
             elif newPosition != None:
-                if complexChild == False:
-                    # print "yes!!"
-                    if self.state._checkIfPieceFits(offset) != None:
+                if self.state._checkIfPieceFits(self.state._offsetPiece(piecePos, newPosition)) != False:
+                    if complexChild == False:
+                        # print "yes!!"
                         newChildren.append((piece,newPosition,None))
                         newPosition = None
-                else:
-                    instructions = self.aStar(self.pieces[piece[0]], newPosition, piecePos)
-                    # print instructions
-                    if instructions != None:
-                        # print "yes!!!"
-                        newChildren.append((piece,newPosition,instructions))
+                    else:
+                        instructions = self.aStar(self.pieces[piece[0]], newPosition, piecePos)
+                        # print instructions
+                        if instructions != None:
+                            # print "yes!!!"
+                            newChildren.append((piece,newPosition,instructions))
             complexChild = True
         # print dt.datetime.utcnow() - now
         if len(newChildren) == 0:
@@ -173,6 +181,7 @@ class Node(object):
 
     def getChild(self, rotation, pos, complexInstructions):
         """Returns a child Node with the rotation dropped from pos."""
+
         new_field = self.state.fitPiece(rotation, pos)
         new_state = Field()
         new_state.field = new_field
@@ -191,6 +200,10 @@ class Node(object):
 
         if relaxation > 2 and self.params['num_full_lines'] > 0:
             self.stat = 'full_line'
+            return +1
+
+        if self.params['filled_holes'] > 0 and self.params['holes'] == 1:
+            self.stat = 'filled_holes'
             return +1
 
         if 2 < relaxation <= 6 and self.params['holes'] < 0.5: # this means 1 new holes necessary for True
