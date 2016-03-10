@@ -3,7 +3,7 @@ import datetime as dt
 from sys import stderr
 from math import log, exp
 from operator import add
-from random import randint, choice
+from random import randint, choice, uniform
 from AbstractStrategy import AbstractStrategy
 from Bot.Game import Piece
 from Bot.Game.Field import Field
@@ -24,6 +24,7 @@ class Node(object):
         self.next_piece = next_piece
         self.this_piece = this_piece
         self.params = None
+        self.isPhantom = False
 
         if this_piece is not None:
             pieces = [this_piece]
@@ -116,7 +117,7 @@ class Node(object):
             self.stat = 'multi_full_line'
             return +1
 
-        if relaxation <= 2 and self.params['holes'] != 1:
+        if relaxation <= 3 and self.params['holes'] != 1:
             self.stat = 'hole_found'
             return -1
 
@@ -124,15 +125,15 @@ class Node(object):
             self.stat = 'full_line'
             return +1
 
-        if 2 < relaxation <= 6 and self.params['holes'] < 0.5: # this means 1 new holes necessary for True
+        if 4 < relaxation <= 8 and self.params['holes'] < 0.5: # this means 1 new holes necessary for True
             self.stat = 'holes<0.5'
             return -1
 
-        if relaxation > 6 and self.params['holes'] < 0.3: # this means 1 new holes necessary for True
+        if relaxation > 8 and self.params['holes'] < 0.3: # this means 1 new holes necessary for True
             self.stat = 'holes<0.3'
             return -1
 
-        if relaxation > 5:
+        if relaxation > 7:
             if treeParams['height'] > 0 and self.params['col_std_dev'] > (1.4 *  (treeParams['col_std_dev'])):
                 self.stat = 'colStdDev>1.4tree'
                 return -1
@@ -141,7 +142,7 @@ class Node(object):
                 self.stat = 'goodfill_noholes'
                 return +1
 
-        if self.params['height'] > treeParams['height'] + 3:
+        if relaxation > 1 and self.params['height'] > treeParams['height'] + 3:
             self.stat = 'height>tree+3'
             return -1
 
@@ -184,6 +185,7 @@ class Node(object):
 class PhantomNode(object):
 
     def __init__(self):
+        self.isPhantom = True
         self.visits = 1
         self.reward = 0
 
@@ -194,6 +196,7 @@ class MonteCarloStrategy(AbstractStrategy):
         self._actions = ['left', 'right', 'turnleft', 'turnright', 'down', 'drop']
         self.C = 2 ** (0.5)
         # self.C = 1.0
+        self.phantomNode = PhantomNode()
         self.score = lambda x, totalVisits: (
                 (float(x.reward) / x.visits) +
                 self.C * (log(totalVisits) / float(x.visits))**(0.5))
@@ -205,15 +208,25 @@ class MonteCarloStrategy(AbstractStrategy):
                 next_piece=self._game.nextPiece)
         return root
 
+    def sampleFrom(self, scores):
+        scoreSum = float(reduce(lambda x,y: x + y[0], scores, 0))
+        sample = uniform(0, scoreSum)
+        for score, child in scores:
+            if sample < score:
+                return (score, child)
+            sample -= score
+        return (float('-inf'), None)
+
     def pickBestChild(self, root):
         totalVisits = root.visits
 
-        if len(root.children) > 0:
-            score, best = max([(self.score(child, totalVisits), child) for child in root.children])
-        else:
-            score = float('-inf')
+        scores = [(self.score(child, totalVisits), child) for child in root.children]
+        if root.hasNextChild():
+            scores.append((self.score(self.phantomNode, totalVisits), self.phantomNode))
 
-        if root.hasNextChild() and score <= self.score(PhantomNode(), totalVisits):
+        score, best = self.sampleFrom(scores)
+
+        if best.isPhantom:
             best = root.getNextChild()
             if best is None:
                 return self.pickBestChild(root)
@@ -280,8 +293,8 @@ class MonteCarloStrategy(AbstractStrategy):
 
             self.searchMCBranch(tree, tree.params, relaxation)
 
-        # return self.pickBestChild(tree)
-        return self.pick_highest_reward(tree)
+        return self.pickBestChild(tree)
+        # return self.pick_highest_reward(tree)
 
     def choose(self):
         # Generate Monte Carlo Tree.
